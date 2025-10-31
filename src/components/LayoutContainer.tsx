@@ -3,6 +3,7 @@
 import { useAppStore } from '@/stores/appStore';
 import CodeEditor from './CodeEditor';
 import DrawingCanvas from './DrawingCanvas';
+import Roadmap from './Roadmap';
 import Resizer from './Resizer';
 import { useCallback, useRef, useState, useEffect } from 'react';
 
@@ -57,6 +58,13 @@ export default function LayoutContainer() {
           </div>
         );
       
+      case 'roadmap':
+        return (
+          <div className="h-full w-full">
+            <Roadmap />
+          </div>
+        );
+      
       case 'split':
         return (
           <div ref={containerRef} className="flex h-full relative">
@@ -66,16 +74,6 @@ export default function LayoutContainer() {
             <Resizer onMouseDown={handleMouseDown} />
             <div className="h-full" style={{ width: `${100 - splitRatio}%` }}>
               <DrawingCanvas />
-            </div>
-          </div>
-        );
-      
-      case 'pip':
-        return (
-          <div className="h-full w-full relative">
-            <DrawingCanvas />
-            <div className="absolute top-4 right-4 w-[600px] h-[400px] rounded-lg shadow-2xl overflow-hidden border-2 border-gray-700">
-              <CodeEditor />
             </div>
           </div>
         );

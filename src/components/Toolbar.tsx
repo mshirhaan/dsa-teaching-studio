@@ -4,7 +4,7 @@ import { useAppStore } from '@/stores/appStore';
 import { 
   Layout, Code, PenTool, Download, 
   Upload, Save, Tv, MessageCircle,
-  Coffee, Trophy, Clock, Play, Pause, RotateCcw
+  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -269,6 +269,7 @@ export default function Toolbar() {
           <ViewModeButton mode="split" icon={Layout} label="Split View" />
           <ViewModeButton mode="code-only" icon={Code} label="Code Only" />
           <ViewModeButton mode="draw-only" icon={PenTool} label="Draw Only" />
+          <ViewModeButton mode="roadmap" icon={Map} label="Roadmap" />
         </div>
       </div>
 

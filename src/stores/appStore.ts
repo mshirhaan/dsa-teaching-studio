@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { initialRoadmapQuestions } from '@/data/roadmapQuestions';
 
-export type ViewMode = 'split' | 'code-only' | 'draw-only' | 'pip';
+export type ViewMode = 'split' | 'code-only' | 'draw-only' | 'roadmap';
 export type SessionMode = 'teaching' | 'qna' | 'break' | 'challenge';
 
 export interface CodeFile {
@@ -32,6 +33,23 @@ export interface DrawingState {
     currentItemOpacity: number;
   };
   files: Record<string, any>; // Store image files as { [fileId]: { mimeType, id, dataURL, created } }
+}
+
+export interface RoadmapQuestion {
+  id: string;
+  number: number; // LeetCode question number
+  title: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  topics: string[]; // ['Array', 'Two Pointers', etc.]
+  leetcodeUrl: string;
+  solved: boolean;
+  solvedAt?: number; // timestamp when marked as solved
+  notes?: string; // optional user notes
+}
+
+export interface RoadmapState {
+  questions: RoadmapQuestion[];
+  solvedCount: number;
 }
 
 export interface Session {
@@ -77,6 +95,10 @@ interface AppStore {
   
   drawing: DrawingState;
   updateDrawing: (state: DrawingState) => void;
+  
+  roadmap: RoadmapState;
+  toggleQuestionSolved: (questionId: string) => void;
+  updateQuestionNotes: (questionId: string, notes: string) => void;
   
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
@@ -301,6 +323,28 @@ export const useAppStore = create<AppStore>()(
   },
   updateDrawing: (drawing) => set({ drawing }),
   
+  roadmap: {
+    questions: initialRoadmapQuestions,
+    solvedCount: 0,
+  },
+  toggleQuestionSolved: (questionId) => set((state) => {
+    const questions = state.roadmap.questions.map(q => 
+      q.id === questionId 
+        ? { ...q, solved: !q.solved, solvedAt: !q.solved ? Date.now() : undefined }
+        : q
+    );
+    const solvedCount = questions.filter(q => q.solved).length;
+    return { roadmap: { ...state.roadmap, questions, solvedCount } };
+  }),
+  updateQuestionNotes: (questionId, notes) => set((state) => ({
+    roadmap: {
+      ...state.roadmap,
+      questions: state.roadmap.questions.map(q =>
+        q.id === questionId ? { ...q, notes } : q
+      ),
+    },
+  })),
+  
   isRunning: false,
   setIsRunning: (isRunning) => set({ isRunning }),
   consoleOutput: '',
@@ -332,6 +376,7 @@ export const useAppStore = create<AppStore>()(
           code: state.codeEditor.code,
         },
         drawing: state.drawing,
+        roadmap: state.roadmap,
         autoRun: state.autoRun,
         laserMode: state.laserMode,
         splitRatio: state.splitRatio,
