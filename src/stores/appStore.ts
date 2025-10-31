@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type ViewMode = 'split' | 'code-only' | 'draw-only' | 'pip';
+export type SessionMode = 'teaching' | 'qna' | 'break' | 'challenge';
 
 export interface CodeFile {
   id: string;
@@ -44,6 +45,19 @@ interface AppStore {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   
+  sessionMode: SessionMode;
+  setSessionMode: (mode: SessionMode) => void;
+  
+  timerMinutes: number;
+  timerSeconds: number;
+  timerSetMinutes: number;
+  isTimerRunning: boolean;
+  setTimerMinutes: (minutes: number) => void;
+  setTimerSeconds: (seconds: number) => void;
+  setTimerSetMinutes: (minutes: number) => void;
+  setIsTimerRunning: (running: boolean) => void;
+  resetTimer: () => void;
+  
   currentSession: Session | null;
   createSession: () => void;
   saveSession: () => void;
@@ -82,6 +96,23 @@ interface AppStore {
 export const useAppStore = create<AppStore>()((set) => ({
   viewMode: 'split',
   setViewMode: (mode) => set({ viewMode: mode }),
+  
+  sessionMode: 'teaching',
+  setSessionMode: (mode) => set({ sessionMode: mode }),
+  
+  timerMinutes: 5,
+  timerSeconds: 0,
+  timerSetMinutes: 5,
+  isTimerRunning: false,
+  setTimerMinutes: (minutes) => set({ timerMinutes: minutes }),
+  setTimerSeconds: (seconds) => set({ timerSeconds: seconds }),
+  setTimerSetMinutes: (minutes) => set({ timerSetMinutes: minutes, timerMinutes: minutes, timerSeconds: 0 }),
+  setIsTimerRunning: (running) => set({ isTimerRunning: running }),
+  resetTimer: () => set((state) => ({ 
+    timerMinutes: state.timerSetMinutes, 
+    timerSeconds: 0, 
+    isTimerRunning: false 
+  })),
   
   currentSession: null,
   createSession: () => {
