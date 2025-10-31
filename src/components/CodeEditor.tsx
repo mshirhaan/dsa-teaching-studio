@@ -1,0 +1,385 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAppStore } from '@/stores/appStore';
+import Editor, { Monaco } from '@monaco-editor/react';
+import Console from './Console';
+import HorizontalResizer from './HorizontalResizer';
+import { Play, Square, ZoomIn, ZoomOut, Plus, X, RotateCcw } from 'lucide-react';
+
+export default function CodeEditor() {
+  const { 
+    codeEditor, 
+    updateCode, 
+    setTheme, 
+    setLanguage, 
+    setFontSize,
+    addFile,
+    selectFile,
+    updateFileName,
+    deleteFile,
+    isRunning,
+    setIsRunning,
+    consoleOutput,
+    setConsoleOutput,
+    autoRun,
+    setAutoRun,
+    consoleHeight,
+    setConsoleHeight,
+  } = useAppStore();
+  
+  const language = codeEditor.language;
+  const [code, setLocalCode] = useState(codeEditor.code);
+  const [editingFileName, setEditingFileName] = useState<string | null>(null);
+  const [newFileName, setNewFileName] = useState('');
+  const [isConsoleResizing, setIsConsoleResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalCode(codeEditor.code);
+  }, [codeEditor.code]);
+
+  // Auto-edit newly created untitled files
+  useEffect(() => {
+    if (codeEditor.currentFileId) {
+      const currentFile = codeEditor.files.find(f => f.id === codeEditor.currentFileId);
+      // Check if the file was just created and is untitled
+      if (currentFile && currentFile.name.startsWith('untitled') && currentFile.code === '') {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          setEditingFileName(codeEditor.currentFileId);
+          setNewFileName(currentFile.name);
+        }, 50);
+      }
+    }
+  }, [codeEditor.currentFileId, codeEditor.files.length]); // Trigger when file is added
+
+  // Auto-run when code changes and auto-run is enabled
+  useEffect(() => {
+    if (autoRun && code && !isRunning) {
+      const timeoutId = setTimeout(() => {
+        handleRun();
+      }, 500); // Debounce: wait 500ms after last change
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, autoRun, isRunning]);
+
+  const handleEditorChange = (value: string | undefined) => {
+    const newCode = value || '';
+    setLocalCode(newCode);
+    updateCode(newCode);
+  };
+
+  const languages = [
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'python', label: 'Python' },
+    { value: 'cpp', label: 'C++' },
+    { value: 'java', label: 'Java' },
+  ];
+
+  const themes = [
+    { value: 'vs-dark', label: 'Dark' },
+    { value: 'light', label: 'Light' },
+    { value: 'hc-black', label: 'High Contrast' },
+  ];
+
+  const handleRun = async () => {
+    setIsRunning(true);
+    setConsoleOutput('');
+    
+    try {
+      if (language === 'javascript') {
+        // Capture console.log, console.error, etc.
+        const logs: string[] = [];
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = (...args: any[]) => {
+          logs.push(args.map(arg => String(arg)).join(' '));
+          originalLog(...args);
+        };
+        
+        console.error = (...args: any[]) => {
+          logs.push('ERROR: ' + args.map(arg => String(arg)).join(' '));
+          originalError(...args);
+        };
+        
+        // Execute code in a new context
+        const codeToRun = code;
+        try {
+          const result = new Function(codeToRun)();
+          if (result !== undefined) {
+            logs.push(String(result));
+          }
+        } catch (error: any) {
+          logs.push('ERROR: ' + error.message);
+        }
+        
+        // Restore original console methods
+        console.log = originalLog;
+        console.error = originalError;
+        
+        setConsoleOutput(logs.join('\n'));
+      } else {
+        setConsoleOutput('Code execution is currently only supported for JavaScript.');
+      }
+    } catch (error: any) {
+      setConsoleOutput(`Error: ${error.message}`);
+    }
+    
+    setIsRunning(false);
+  };
+
+  const handleZoomIn = () => {
+    const currentFontSize = useAppStore.getState().codeEditor.fontSize;
+    setFontSize(Math.min(currentFontSize + 2, 32));
+  };
+
+  const handleZoomOut = () => {
+    const currentFontSize = useAppStore.getState().codeEditor.fontSize;
+    setFontSize(Math.max(currentFontSize - 2, 10));
+  };
+
+  const handleFileNameDoubleClick = (fileId: string, currentName: string) => {
+    setEditingFileName(fileId);
+    setNewFileName(currentName);
+  };
+
+  const handleFileNameSubmit = (fileId: string) => {
+    if (newFileName.trim()) {
+      updateFileName(fileId, newFileName.trim());
+    }
+    setEditingFileName(null);
+    setNewFileName('');
+  };
+
+  const handleAddNewFile = () => {
+    // Generate a unique untitled filename
+    const existingFiles = codeEditor.files;
+    const untitledFiles = existingFiles.filter(f => f.name.startsWith('untitled'));
+    const fileNumber = untitledFiles.length + 1;
+    
+    // Determine extension based on language
+    const extension = language === 'javascript' ? '.js' :
+                     language === 'python' ? '.py' :
+                     language === 'cpp' ? '.cpp' :
+                     language === 'java' ? '.java' : '.txt';
+    
+    const name = `untitled${fileNumber}${extension}`;
+    addFile(name, language);
+  };
+
+  const handleConsoleResizeStart = useCallback(() => {
+    setIsConsoleResizing(true);
+  }, []);
+
+  const handleConsoleResize = useCallback((e: MouseEvent) => {
+    if (!isConsoleResizing || !containerRef.current) return;
+    
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height - y;
+    
+    // Min height 80px, Max height 70% of container
+    const minHeight = 80;
+    const maxHeight = rect.height * 0.7;
+    const newHeight = Math.min(Math.max(height, minHeight), maxHeight);
+    
+    setConsoleHeight(newHeight);
+  }, [isConsoleResizing, setConsoleHeight]);
+
+  const handleConsoleResizeEnd = useCallback(() => {
+    setIsConsoleResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isConsoleResizing) {
+      window.addEventListener('mousemove', handleConsoleResize);
+      window.addEventListener('mouseup', handleConsoleResizeEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleConsoleResize);
+        window.removeEventListener('mouseup', handleConsoleResizeEnd);
+      };
+    }
+  }, [isConsoleResizing, handleConsoleResize, handleConsoleResizeEnd]);
+
+  const currentFile = codeEditor.files.find(f => f.id === codeEditor.currentFileId);
+
+  return (
+    <div className="h-full flex flex-col bg-gray-900" ref={containerRef}>
+      {/* Combined File Tabs and Toolbar */}
+      <div className="bg-gray-800 border-b border-gray-700 flex items-center">
+        {/* Left side: File tabs and New File button */}
+        <div className="flex items-center overflow-x-auto flex-1">
+          {codeEditor.files.length > 0 && (
+            <>
+              {codeEditor.files.map((file) => (
+                <div
+                  key={file.id}
+                  className={`flex items-center gap-2 px-4 py-2 border-r border-gray-700 min-w-fit ${
+                    codeEditor.currentFileId === file.id
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-750'
+                  } cursor-pointer`}
+                  onClick={() => selectFile(file.id)}
+                >
+                  {editingFileName === file.id ? (
+                    <input
+                      type="text"
+                      value={newFileName}
+                      onChange={(e) => setNewFileName(e.target.value)}
+                      onBlur={() => handleFileNameSubmit(file.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleFileNameSubmit(file.id);
+                        if (e.key === 'Escape') setEditingFileName(null);
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      className="bg-gray-600 text-white px-2 py-1 rounded w-32"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <>
+                      <span 
+                        className="text-sm"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          handleFileNameDoubleClick(file.id, file.name);
+                        }}
+                      >
+                        {file.name}
+                      </span>
+                      {codeEditor.files.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteFile(file.id);
+                          }}
+                          className="hover:bg-red-600 rounded p-1"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+          <button
+            onClick={handleAddNewFile}
+            className="px-2 py-2 text-gray-300 hover:bg-gray-700 border-r border-gray-700"
+            title="Add new file"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+
+        {/* Right side: Run button, language, theme, and zoom controls */}
+        <div className="flex items-center gap-2 px-4 py-2 border-l border-gray-700 flex-shrink-0">
+          <button
+            onClick={handleRun}
+            disabled={isRunning}
+            className="px-4 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2 disabled:opacity-50"
+          >
+            {isRunning ? <Square size={16} /> : <Play size={16} />}
+            Run
+          </button>
+
+          <button
+            onClick={() => setAutoRun(!autoRun)}
+            className={`px-3 py-1 rounded-lg flex items-center gap-2 border-2 transition-colors ${
+              autoRun 
+                ? 'bg-green-900 border-green-600 text-green-200' 
+                : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+            }`}
+            title="Auto Run: Automatically execute code when it changes"
+          >
+            <RotateCcw size={16} />
+            Auto
+          </button>
+
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600"
+          >
+            {languages.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={codeEditor.theme}
+            onChange={(e) => setTheme(e.target.value)}
+            className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600"
+          >
+            {themes.map((theme) => (
+              <option key={theme.value} value={theme.value}>
+                {theme.label}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2 ml-2">
+            <span className="text-sm text-gray-400">{codeEditor.fontSize}px</span>
+            <button
+              onClick={handleZoomOut}
+              className="p-1 hover:bg-gray-700 rounded"
+              title="Zoom Out (Cmd/Ctrl + -)"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <button
+              onClick={handleZoomIn}
+              className="p-1 hover:bg-gray-700 rounded"
+              title="Zoom In (Cmd/Ctrl + =)"
+            >
+              <ZoomIn size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        <Editor
+          height="100%"
+          language={language}
+          theme={codeEditor.theme}
+          value={code}
+          onChange={handleEditorChange}
+          options={{
+            fontSize: codeEditor.fontSize,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            tabSize: 2,
+            wordWrap: 'on',
+          }}
+          onMount={(editor, monaco) => {
+            // Add keyboard shortcuts for zoom
+            editor.addCommand(
+              monaco.KeyMod.CtrlCmd | (monaco.KeyCode as any).Equal || 187,
+              handleZoomIn
+            );
+            editor.addCommand(
+              monaco.KeyMod.CtrlCmd | (monaco.KeyCode as any).Minus || 189,
+              handleZoomOut
+            );
+          }}
+        />
+      </div>
+
+      {/* Horizontal resizer for console */}
+      <HorizontalResizer onMouseDown={handleConsoleResizeStart} />
+
+      <div style={{ height: `${consoleHeight}px` }} className="flex flex-col">
+        <Console output={consoleOutput} onClear={() => setConsoleOutput('')} />
+      </div>
+    </div>
+  );
+}
