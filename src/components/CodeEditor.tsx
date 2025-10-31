@@ -5,7 +5,7 @@ import { useAppStore } from '@/stores/appStore';
 import Editor, { Monaco } from '@monaco-editor/react';
 import Console from './Console';
 import HorizontalResizer from './HorizontalResizer';
-import { Play, Square, ZoomIn, ZoomOut, Plus, X, RotateCcw } from 'lucide-react';
+import { Play, Square, ZoomIn, ZoomOut, Plus, X, RotateCcw, Flashlight } from 'lucide-react';
 
 export default function CodeEditor() {
   const { 
@@ -24,6 +24,8 @@ export default function CodeEditor() {
     setConsoleOutput,
     autoRun,
     setAutoRun,
+    laserMode,
+    setLaserMode,
     consoleHeight,
     setConsoleHeight,
   } = useAppStore();
@@ -34,6 +36,7 @@ export default function CodeEditor() {
   const [newFileName, setNewFileName] = useState('');
   const [isConsoleResizing, setIsConsoleResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [laserPosition, setLaserPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setLocalCode(codeEditor.code);
@@ -64,6 +67,18 @@ export default function CodeEditor() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, autoRun, isRunning]);
+
+  // Track mouse position for laser pointer
+  useEffect(() => {
+    if (!laserMode) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setLaserPosition({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [laserMode]);
 
   const handleEditorChange = (value: string | undefined) => {
     const newCode = value || '';
@@ -208,7 +223,7 @@ export default function CodeEditor() {
   const currentFile = codeEditor.files.find(f => f.id === codeEditor.currentFileId);
 
   return (
-    <div className="h-full flex flex-col bg-gray-900" ref={containerRef}>
+    <div className={`h-full flex flex-col bg-gray-900 ${laserMode ? 'laser-mode-active' : ''}`} ref={containerRef}>
       {/* Combined File Tabs and Toolbar */}
       <div className="bg-gray-800 border-b border-gray-700 flex items-center">
         {/* Left side: File tabs and New File button */}
@@ -280,6 +295,19 @@ export default function CodeEditor() {
         {/* Right side: Run button, language, theme, and zoom controls */}
         <div className="flex items-center gap-2 px-4 py-2 border-l border-gray-700 flex-shrink-0">
           <button
+            onClick={() => setLaserMode(!laserMode)}
+            className={`px-3 py-1 rounded-lg flex items-center gap-2 border-2 transition-colors ${
+              laserMode 
+                ? 'bg-red-900 border-red-600 text-red-200' 
+                : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+            }`}
+            title="Laser Pointer: Highlight cursor for teaching"
+          >
+            <Flashlight size={16} />
+            Laser
+          </button>
+
+          <button
             onClick={handleRun}
             disabled={isRunning}
             className="px-4 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2 disabled:opacity-50"
@@ -345,7 +373,7 @@ export default function CodeEditor() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         <Editor
           height="100%"
           language={language}
@@ -372,6 +400,23 @@ export default function CodeEditor() {
             );
           }}
         />
+        
+        {/* Laser pointer indicator */}
+        {laserMode && (
+          <div
+            className="fixed pointer-events-none z-[9999]"
+            style={{
+              left: `${laserPosition.x}px`,
+              top: `${laserPosition.y}px`,
+              width: '20px',
+              height: '20px',
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="absolute inset-0 rounded-full bg-red-500 animate-ping" style={{ animationDuration: '1s' }}></div>
+            <div className="absolute inset-0 rounded-full bg-red-500" style={{ boxShadow: '0 0 20px 4px rgba(239, 68, 68, 1)' }}></div>
+          </div>
+        )}
       </div>
 
       {/* Horizontal resizer for console */}

@@ -45,3 +45,20 @@ body {
   background: #4b4b4b;
 }
 
+/* Laser mode - hide Monaco editor cursor */
+.laser-mode-active .monaco-editor .monaco-mouse-cursor-text {
+  display: none !important;
+}
+
+.laser-mode-active .monaco-editor .cursor {
+  display: none !important;
+}
+
+.laser-mode-active .monaco-editor .monaco-scrollable-element {
+  cursor: none !important;
+}
+
+.laser-mode-active .monaco-editor {
+  cursor: none !important;
+}
+

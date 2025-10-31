@@ -70,6 +70,9 @@ interface AppStore {
   autoRun: boolean;
   setAutoRun: (enabled: boolean) => void;
   
+  laserMode: boolean;
+  setLaserMode: (enabled: boolean) => void;
+  
   splitRatio: number;
   setSplitRatio: (ratio: number) => void;
   consoleHeight: number;
@@ -246,6 +249,9 @@ export const useAppStore = create<AppStore>()((set) => ({
   
   autoRun: false,
   setAutoRun: (enabled) => set({ autoRun: enabled }),
+  
+  laserMode: false,
+  setLaserMode: (enabled) => set({ laserMode: enabled }),
   
   splitRatio: 50,
   setSplitRatio: (ratio) => set({ splitRatio: ratio }),

@@ -18,6 +18,12 @@
   - Automatically runs code 500ms after typing stops
   - Visual indicator when enabled
   - Perfect for live testing and experimentation
+- **Laser Pointer Mode**: Teaching assistant mode
+  - Flashlight icon button before Run button
+  - Hides Monaco editor cursor when active
+  - Red styling when enabled
+  - Perfect for code walkthroughs and screen recordings
+  - Zero performance impact (pure CSS)
 
 ### 3. File Management System ✓
 - **File Tabs**: Visual tabs showing all open files
