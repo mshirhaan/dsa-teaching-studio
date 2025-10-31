@@ -12,11 +12,17 @@ export default function DrawingCanvas() {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
 
   return (
-    <div className="h-full w-full bg-gray-100">
+    <div className="h-full w-full bg-gray-900">
       <Excalidraw
         excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
         onChange={(elements: any, appState: any) => {
           // Handle changes
+        }}
+        theme="dark"
+        initialData={{
+          appState: {
+            theme: 'dark',
+          },
         }}
       />
     </div>
