@@ -70,7 +70,7 @@ export default function CodeEditor() {
       return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, autoRun, isRunning]);
+  }, [code, autoRun]); // Remove isRunning from deps to prevent loop
 
   // Track mouse position for laser pointer
   useEffect(() => {
@@ -91,10 +91,10 @@ export default function CodeEditor() {
   };
 
   const languages = [
-    { value: 'javascript', label: 'JavaScript', extensions: ['.js', '.jsx', '.mjs'] },
-    { value: 'python', label: 'Python', extensions: ['.py', '.pyw', '.pyi'] },
-    { value: 'cpp', label: 'C++', extensions: ['.cpp', '.cxx', '.cc', '.c++'] },
-    { value: 'java', label: 'Java', extensions: ['.java'] },
+    { value: 'javascript', label: 'JavaScript', extensions: ['.js', '.jsx', '.mjs'], pistonLang: 'javascript' },
+    { value: 'python', label: 'Python', extensions: ['.py', '.pyw', '.pyi'], pistonLang: 'python' },
+    { value: 'cpp', label: 'C++', extensions: ['.cpp', '.cxx', '.cc', '.c++'], pistonLang: 'cpp' },
+    { value: 'java', label: 'Java', extensions: ['.java'], pistonLang: 'java' },
   ];
 
   // Helper functions for language/extension mapping
@@ -112,12 +112,71 @@ export default function CodeEditor() {
     const langConfig = languages.find(l => l.extensions.includes(extension));
     return langConfig ? langConfig.value : 'javascript';
   };
+  
+  const getPistonLanguage = (lang: string): string => {
+    const langConfig = languages.find(l => l.value === lang);
+    return langConfig?.pistonLang || lang;
+  };
 
   const themes = [
     { value: 'vs-dark', label: 'Dark' },
     { value: 'light', label: 'Light' },
     { value: 'hc-black', label: 'High Contrast' },
   ];
+
+  const executeWithPiston = async (code: string, language: string): Promise<string> => {
+    try {
+      const pistonLang = getPistonLanguage(language);
+      const currentFile = codeEditor.files.find(f => f.id === codeEditor.currentFileId);
+      const filename = currentFile?.name || 'main' + getExtensionFromLanguage(language);
+      
+      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          language: pistonLang,
+          version: '*',
+          files: [
+            {
+              name: filename,
+              content: code,
+            },
+          ],
+          stdin: '',
+          args: [],
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.run) {
+        const output = [];
+        
+        // Add stderr if present
+        if (data.run.stderr) {
+          output.push('ERROR: ' + data.run.stderr);
+        }
+        
+        // Add stdout if present
+        if (data.run.stdout) {
+          output.push(data.run.stdout);
+        }
+        
+        // Handle exit codes
+        if (data.run.code !== 0 && !data.run.stderr) {
+          output.push(`Process exited with code ${data.run.code}`);
+        }
+        
+        return output.join('\n') || 'No output';
+      }
+      
+      return 'Failed to execute code';
+    } catch (error: any) {
+      return `Error: ${error.message}`;
+    }
+  };
 
   const handleRun = async () => {
     setIsRunning(true);
@@ -157,7 +216,9 @@ export default function CodeEditor() {
         
         setConsoleOutput(logs.join('\n'));
       } else {
-        setConsoleOutput('Code execution is currently only supported for JavaScript.');
+        // Use Piston API for other languages
+        const output = await executeWithPiston(code, language);
+        setConsoleOutput(output);
       }
     } catch (error: any) {
       setConsoleOutput(`Error: ${error.message}`);
@@ -335,11 +396,10 @@ export default function CodeEditor() {
           </button>
 
           <button
-            onClick={handleRun}
-            disabled={isRunning}
-            className="px-4 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2 disabled:opacity-50"
+            onClick={() => !isRunning && handleRun()}
+            className="px-4 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2"
           >
-            {isRunning ? <Square size={16} /> : <Play size={16} />}
+            <Play size={16} />
             Run
           </button>
 

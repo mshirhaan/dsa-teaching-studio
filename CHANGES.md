@@ -7,12 +7,13 @@
 - Now positioned above the code editor, next to language and theme selectors
 - More intuitive placement for code execution
 
-### 2. JavaScript Code Execution ✓
-- Fully functional JavaScript execution engine
+### 2. Multi-Language Code Execution ✓
+- Fully functional JavaScript execution engine (local execution)
 - Captures console.log(), console.error(), and other outputs
 - Displays results in the console panel below the editor
 - Proper error handling with user-friendly messages
-- Currently supports JavaScript (other languages coming soon)
+- **Python, C++, Java execution**: Via Piston API (emkc.org)
+- Proper stdout/stderr capture for all languages
 - **Auto Run Mode**: Toggle auto-execution when code changes
   - Green "Auto" button next to Run button
   - Automatically runs code 500ms after typing stops
@@ -143,9 +144,13 @@ The code editor now has a two-tier header system:
   - Renaming file with different extension auto-selects language
   - Supports all extensions: .js/.jsx/.mjs, .py/.pyw/.pyi, .cpp/.cxx/.cc/.c++, .java
   - Seamless bidirectional sync
+- **Multi-Language Code Execution**: 
+  - Python, C++, Java execution via Piston API
+  - JavaScript still runs locally for better performance
+  - Proper error handling and stdout/stderr capture
+  - Uses emkc.org public Piston API endpoint
 
 ## 🚀 Next Steps (Coming Soon)
-- Multi-language execution (Python, C++, Java)
 - Code templates
 - Step-by-step debugging
 - Breakpoints
