@@ -328,6 +328,7 @@ export const useAppStore = create<AppStore>()(
           files: state.codeEditor.files,
           code: state.codeEditor.code,
         },
+        drawing: state.drawing,
         autoRun: state.autoRun,
         laserMode: state.laserMode,
         splitRatio: state.splitRatio,
