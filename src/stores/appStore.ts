@@ -131,7 +131,7 @@ export const useAppStore = create<AppStore>()(
       createdAt: Date.now(),
       updatedAt: Date.now(),
       codeEditor: {
-        code: '// Welcome to DSA Teaching Studio\n// Start coding here...\n',
+        code: initialFile.code,
         language: 'javascript',
         theme: 'vs-dark',
         fontSize: 14,
@@ -213,10 +213,27 @@ export const useAppStore = create<AppStore>()(
     codeEditor: { ...state.codeEditor, fontSize } 
   })),
   addFile: (name, language) => set((state) => {
+    // Language-specific default code
+    const getDefaultCode = (lang: string): string => {
+      switch (lang) {
+        case 'javascript':
+          return '// Welcome to DSA Teaching Studio\n// Start coding here...\n';
+        case 'python':
+          return '# Welcome to DSA Teaching Studio\n# Start coding here...\n';
+        case 'cpp':
+          return '// Welcome to DSA Teaching Studio\n// Start coding here...\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}\n';
+        case 'java':
+          return '// Welcome to DSA Teaching Studio\n// Start coding here...\n\npublic class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}\n';
+        default:
+          return '';
+      }
+    };
+    
+    const defaultCode = getDefaultCode(language);
     const newFile: CodeFile = {
       id: Date.now().toString(),
       name,
-      code: '',
+      code: defaultCode,
       language,
     };
     return {
@@ -224,7 +241,7 @@ export const useAppStore = create<AppStore>()(
         ...state.codeEditor,
         files: [...state.codeEditor.files, newFile],
         currentFileId: newFile.id,
-        code: '',
+        code: defaultCode,
         language,
       },
     };
