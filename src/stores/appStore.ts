@@ -31,6 +31,7 @@ export interface DrawingState {
     currentItemRoughness: number;
     currentItemOpacity: number;
   };
+  files: Record<string, any>; // Store image files as { [fileId]: { mimeType, id, dataURL, created } }
 }
 
 export interface Session {
@@ -149,6 +150,7 @@ export const useAppStore = create<AppStore>()(
           currentItemRoughness: 1,
           currentItemOpacity: 100,
         },
+        files: {},
       },
     };
     set({ currentSession: session, codeEditor: session.codeEditor });
@@ -295,6 +297,7 @@ export const useAppStore = create<AppStore>()(
       currentItemRoughness: 1,
       currentItemOpacity: 100,
     },
+    files: {},
   },
   updateDrawing: (drawing) => set({ drawing }),
   

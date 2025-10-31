@@ -18,21 +18,38 @@ export default function DrawingCanvas() {
 
   // Initialize with saved data only once
   useEffect(() => {
-    if (excalidrawAPI && !isInitialized && drawing.elements.length > 0) {
+    if (excalidrawAPI && !isInitialized && (drawing.elements.length > 0 || Object.keys(drawing.files).length > 0)) {
       excalidrawAPI.updateScene({
         elements: drawing.elements,
       });
+      // Restore files if they exist
+      if (Object.keys(drawing.files).length > 0) {
+        excalidrawAPI.addFiles(Object.values(drawing.files));
+      }
       setIsInitialized(true);
     }
-  }, [excalidrawAPI, isInitialized, drawing.elements]);
+  }, [excalidrawAPI, isInitialized, drawing.elements, drawing.files]);
 
-  const handleChange = useCallback((elements: any, appState: any) => {
+  const handleChange = useCallback((elements: any, appState: any, files: any) => {
     // Debounce updates to prevent infinite loops
     if (updateTimerRef.current) {
       clearTimeout(updateTimerRef.current);
     }
 
     updateTimerRef.current = setTimeout(() => {
+      // Convert files object to plain object for storage
+      const filesObj: Record<string, any> = {};
+      if (files) {
+        Object.entries(files).forEach(([fileId, file]: [string, any]) => {
+          filesObj[fileId] = {
+            id: file.id,
+            mimeType: file.mimeType,
+            dataURL: file.dataURL,
+            created: file.created,
+          };
+        });
+      }
+
       updateDrawing({
         elements,
         appState: {
@@ -44,6 +61,7 @@ export default function DrawingCanvas() {
           currentItemRoughness: appState.currentItemRoughness || 1,
           currentItemOpacity: appState.currentItemOpacity || 100,
         },
+        files: filesObj,
       });
     }, 300); // Debounce for 300ms
   }, [updateDrawing]);
@@ -67,6 +85,7 @@ export default function DrawingCanvas() {
           appState: {
             theme: 'dark',
           } as any,
+          files: drawing.files,
         }}
       />
     </div>
