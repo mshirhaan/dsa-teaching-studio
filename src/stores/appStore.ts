@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type ViewMode = 'split' | 'code-only' | 'draw-only' | 'pip';
 export type SessionMode = 'teaching' | 'qna' | 'break' | 'challenge';
@@ -93,7 +94,9 @@ interface AppStore {
   setConsoleHeight: (height: number) => void;
 }
 
-export const useAppStore = create<AppStore>()((set) => ({
+export const useAppStore = create<AppStore>()(
+  persist(
+    (set) => ({
   viewMode: 'split',
   setViewMode: (mode) => set({ viewMode: mode }),
   
@@ -293,5 +296,27 @@ export const useAppStore = create<AppStore>()((set) => ({
   setSplitRatio: (ratio) => set({ splitRatio: ratio }),
   consoleHeight: 128, // Default 32 * 4 = 128px (h-32)
   setConsoleHeight: (height) => set({ consoleHeight: height }),
-}));
+}),
+    {
+      name: 'dsa-studio-storage',
+      partialize: (state) => ({
+        viewMode: state.viewMode,
+        sessionMode: state.sessionMode,
+        timerSetMinutes: state.timerSetMinutes,
+        codeEditor: {
+          language: state.codeEditor.language,
+          theme: state.codeEditor.theme,
+          fontSize: state.codeEditor.fontSize,
+          currentFileId: state.codeEditor.currentFileId,
+          files: state.codeEditor.files,
+          code: state.codeEditor.code,
+        },
+        autoRun: state.autoRun,
+        laserMode: state.laserMode,
+        splitRatio: state.splitRatio,
+        consoleHeight: state.consoleHeight,
+      }),
+    }
+  )
+);
 

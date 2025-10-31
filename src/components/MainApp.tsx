@@ -6,13 +6,14 @@ import LayoutContainer from './LayoutContainer';
 import Toolbar from './Toolbar';
 
 export default function MainApp() {
-  const { createSession, currentSession } = useAppStore();
+  const { createSession, currentSession, codeEditor } = useAppStore();
 
   useEffect(() => {
-    if (!currentSession) {
+    // Only create a session if we don't have one AND we don't have any persisted files
+    if (!currentSession && codeEditor.files.length === 0) {
       createSession();
     }
-  }, [currentSession, createSession]);
+  }, [currentSession, createSession, codeEditor.files.length]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-gray-900 text-white overflow-hidden">
