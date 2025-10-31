@@ -138,6 +138,11 @@ The code editor now has a two-tier header system:
   - Maximum height: 70% of editor area
   - Smooth resize with hover feedback
   - Height persists across sessions
+- **Smart Language/Extension Sync**: 
+  - Changing language dropdown automatically updates file extension
+  - Renaming file with different extension auto-selects language
+  - Supports all extensions: .js/.jsx/.mjs, .py/.pyw/.pyi, .cpp/.cxx/.cc/.c++, .java
+  - Seamless bidirectional sync
 
 ## 🚀 Next Steps (Coming Soon)
 - Multi-language execution (Python, C++, Java)

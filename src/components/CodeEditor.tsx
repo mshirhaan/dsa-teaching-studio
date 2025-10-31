@@ -37,6 +37,7 @@ export default function CodeEditor() {
   const [isConsoleResizing, setIsConsoleResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [laserPosition, setLaserPosition] = useState({ x: 0, y: 0 });
+  const newlyCreatedFileId = useRef<string | null>(null); // 'new' means file was just created
 
   useEffect(() => {
     setLocalCode(codeEditor.code);
@@ -44,7 +45,7 @@ export default function CodeEditor() {
 
   // Auto-edit newly created untitled files
   useEffect(() => {
-    if (codeEditor.currentFileId) {
+    if (codeEditor.currentFileId && newlyCreatedFileId.current === 'new') {
       const currentFile = codeEditor.files.find(f => f.id === codeEditor.currentFileId);
       // Check if the file was just created and is untitled
       if (currentFile && currentFile.name.startsWith('untitled') && currentFile.code === '') {
@@ -52,10 +53,13 @@ export default function CodeEditor() {
         setTimeout(() => {
           setEditingFileName(codeEditor.currentFileId);
           setNewFileName(currentFile.name);
+          newlyCreatedFileId.current = null; // Clear the flag after use
         }, 50);
+      } else {
+        newlyCreatedFileId.current = null; // Clear the flag if not matching
       }
     }
-  }, [codeEditor.currentFileId, codeEditor.files.length]); // Trigger when file is added
+  }, [codeEditor.currentFileId, codeEditor.files]);
 
   // Auto-run when code changes and auto-run is enabled
   useEffect(() => {
@@ -87,11 +91,27 @@ export default function CodeEditor() {
   };
 
   const languages = [
-    { value: 'javascript', label: 'JavaScript' },
-    { value: 'python', label: 'Python' },
-    { value: 'cpp', label: 'C++' },
-    { value: 'java', label: 'Java' },
+    { value: 'javascript', label: 'JavaScript', extensions: ['.js', '.jsx', '.mjs'] },
+    { value: 'python', label: 'Python', extensions: ['.py', '.pyw', '.pyi'] },
+    { value: 'cpp', label: 'C++', extensions: ['.cpp', '.cxx', '.cc', '.c++'] },
+    { value: 'java', label: 'Java', extensions: ['.java'] },
   ];
+
+  // Helper functions for language/extension mapping
+  const getExtensionFromLanguage = (lang: string): string => {
+    const langConfig = languages.find(l => l.value === lang);
+    return langConfig ? langConfig.extensions[0] : '';
+  };
+
+  const getLanguageFromExtension = (filename: string): string => {
+    const lastDotIndex = filename.lastIndexOf('.');
+    // Only consider it an extension if there's a dot and it's not at the start
+    if (lastDotIndex === -1 || lastDotIndex === 0) return 'javascript';
+    
+    const extension = filename.substring(lastDotIndex);
+    const langConfig = languages.find(l => l.extensions.includes(extension));
+    return langConfig ? langConfig.value : 'javascript';
+  };
 
   const themes = [
     { value: 'vs-dark', label: 'Dark' },
@@ -163,7 +183,14 @@ export default function CodeEditor() {
 
   const handleFileNameSubmit = (fileId: string) => {
     if (newFileName.trim()) {
-      updateFileName(fileId, newFileName.trim());
+      const filename = newFileName.trim();
+      updateFileName(fileId, filename);
+      
+      // Detect language from new extension and update if different
+      const detectedLanguage = getLanguageFromExtension(filename);
+      if (detectedLanguage !== language) {
+        setLanguage(detectedLanguage);
+      }
     }
     setEditingFileName(null);
     setNewFileName('');
@@ -176,13 +203,13 @@ export default function CodeEditor() {
     const fileNumber = untitledFiles.length + 1;
     
     // Determine extension based on language
-    const extension = language === 'javascript' ? '.js' :
-                     language === 'python' ? '.py' :
-                     language === 'cpp' ? '.cpp' :
-                     language === 'java' ? '.java' : '.txt';
+    const extension = getExtensionFromLanguage(language);
     
     const name = `untitled${fileNumber}${extension}`;
     addFile(name, language);
+    
+    // Mark that a new file was just created
+    newlyCreatedFileId.current = 'new'; // Use a sentinel value
   };
 
   const handleConsoleResizeStart = useCallback(() => {
@@ -331,7 +358,29 @@ export default function CodeEditor() {
 
           <select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => {
+              const newLanguage = e.target.value;
+              setLanguage(newLanguage);
+              
+              // Update file extension when language changes
+              const currentFile = codeEditor.files.find(f => f.id === codeEditor.currentFileId);
+              if (currentFile) {
+                const newExtension = getExtensionFromLanguage(newLanguage);
+                const lastDotIndex = currentFile.name.lastIndexOf('.');
+                // Only replace extension if there actually was one
+                if (lastDotIndex !== -1 && lastDotIndex !== 0) {
+                  const oldExtension = currentFile.name.substring(lastDotIndex);
+                  if (oldExtension !== newExtension) {
+                    const newFileName = currentFile.name.replace(oldExtension, newExtension);
+                    updateFileName(codeEditor.currentFileId!, newFileName);
+                  }
+                } else {
+                  // No extension, just add the new one
+                  const newFileName = currentFile.name + newExtension;
+                  updateFileName(codeEditor.currentFileId!, newFileName);
+                }
+              }
+            }}
             className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600"
           >
             {languages.map((lang) => (

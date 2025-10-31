@@ -164,9 +164,14 @@ export const useAppStore = create<AppStore>()((set) => ({
       codeEditor: { ...state.codeEditor, code, files: updatedFiles } 
     };
   }),
-  setLanguage: (language) => set((state) => ({ 
-    codeEditor: { ...state.codeEditor, language } 
-  })),
+  setLanguage: (language) => set((state) => {
+    const updatedFiles = state.codeEditor.files.map(file =>
+      file.id === state.codeEditor.currentFileId ? { ...file, language } : file
+    );
+    return { 
+      codeEditor: { ...state.codeEditor, language, files: updatedFiles } 
+    };
+  }),
   setTheme: (theme) => set((state) => ({ 
     codeEditor: { ...state.codeEditor, theme } 
   })),
