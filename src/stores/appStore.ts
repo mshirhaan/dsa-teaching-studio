@@ -45,6 +45,9 @@ export interface RoadmapQuestion {
   solved: boolean;
   solvedAt?: number; // timestamp when marked as solved
   notes?: string; // optional user notes
+  gitCommitUrl?: string; // GitHub blob/commit URL for submitted solution
+  submittedAt?: number; // timestamp when submitted to GitHub
+  gitFilePath?: string; // Path to file in repo
 }
 
 export interface RoadmapState {
@@ -59,6 +62,14 @@ export interface Session {
   updatedAt: number;
   codeEditor: CodeEditorState;
   drawing: DrawingState;
+}
+
+export interface GitHubConfig {
+  token: string | null;
+  repoOwner: string | null;
+  repoName: string | null;
+  basePath: string; // e.g., "solutions" or ""
+  initialized: boolean;
 }
 
 interface AppStore {
@@ -99,6 +110,10 @@ interface AppStore {
   roadmap: RoadmapState;
   toggleQuestionSolved: (questionId: string) => void;
   updateQuestionNotes: (questionId: string, notes: string) => void;
+  updateQuestionGitInfo: (questionId: string, gitCommitUrl: string, submittedAt: number, gitFilePath: string) => void;
+  
+  github: GitHubConfig;
+  setGitHubConfig: (config: Partial<GitHubConfig>) => void;
   
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
@@ -344,6 +359,25 @@ export const useAppStore = create<AppStore>()(
       ),
     },
   })),
+  updateQuestionGitInfo: (questionId, gitCommitUrl, submittedAt, gitFilePath) => set((state) => ({
+    roadmap: {
+      ...state.roadmap,
+      questions: state.roadmap.questions.map(q =>
+        q.id === questionId ? { ...q, gitCommitUrl, submittedAt, gitFilePath } : q
+      ),
+    },
+  })),
+  
+  github: {
+    token: null,
+    repoOwner: null,
+    repoName: null,
+    basePath: 'solutions',
+    initialized: false,
+  },
+  setGitHubConfig: (config) => set((state) => ({
+    github: { ...state.github, ...config, initialized: true }
+  })),
   
   isRunning: false,
   setIsRunning: (isRunning) => set({ isRunning }),
@@ -377,6 +411,7 @@ export const useAppStore = create<AppStore>()(
         },
         drawing: state.drawing,
         roadmap: state.roadmap,
+        github: state.github,
         autoRun: state.autoRun,
         laserMode: state.laserMode,
         splitRatio: state.splitRatio,

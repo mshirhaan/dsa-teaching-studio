@@ -2,10 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { useAppStore } from '@/stores/appStore';
-import { CheckSquare, Square, Search, ExternalLink, StickyNote, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckSquare, Square, Search, ExternalLink, StickyNote, X, ChevronDown, ChevronRight, Github, Upload, AlertCircle } from 'lucide-react';
+import SubmissionModal from './SubmissionModal';
+import { generateAndUploadReadme, uploadFile } from '@/utils/githubApi';
 
 export default function Roadmap() {
-  const { roadmap, toggleQuestionSolved, updateQuestionNotes } = useAppStore();
+  const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, github } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Solved' | 'Unsolved'>('All');
@@ -13,6 +15,10 @@ export default function Roadmap() {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState('');
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+  const [submittingQuestionId, setSubmittingQuestionId] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null);
 
   // Get all unique topics
   const allTopics = useMemo(() => {
@@ -81,6 +87,62 @@ export default function Roadmap() {
   const handleNotesSave = (questionId: string) => {
     updateQuestionNotes(questionId, notesValue);
     setEditingNotes(null);
+  };
+
+  const handleCodeUpload = async (questionId: string, code: string, language: string) => {
+    if (!github.token || !github.repoOwner || !github.repoName) {
+      setSubmissionError('Please configure GitHub in settings first');
+      return;
+    }
+
+    setSubmittingQuestionId(questionId);
+    setSubmissionError(null);
+
+    try {
+      const question = roadmap.questions.find(q => q.id === questionId);
+      if (!question) return;
+
+      // Generate file path and filename
+      const toKebabCase = (str: string) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const getExtension = (lang: string) => {
+        const ext: Record<string, string> = { javascript: '.js', python: '.py', cpp: '.cpp', java: '.java', typescript: '.ts', c: '.c', csharp: '.cs', go: '.go', rust: '.rs', php: '.php', ruby: '.rb', swift: '.swift', kotlin: '.kt' };
+        return ext[lang.toLowerCase()] || '.txt';
+      };
+
+      const fileName = `${question.id}-${toKebabCase(question.title)}${getExtension(language)}`;
+      const filePath = `${github.basePath}/${question.topics[0]}/${fileName}`;
+      
+      // Upload to GitHub using the utility function (handles SHA for updates)
+      const uploadResult = await uploadFile(
+        { token: github.token!, repoOwner: github.repoOwner!, repoName: github.repoName!, basePath: github.basePath },
+        filePath,
+        code,
+        `Add solution: ${question.title}`
+      );
+
+      if (uploadResult.success && uploadResult.blobUrl) {
+        updateQuestionGitInfo(questionId, uploadResult.blobUrl, Date.now(), filePath);
+        
+        // Auto-update README.md with fresh state
+        const updatedState = useAppStore.getState();
+        const readmeResult = await generateAndUploadReadme(
+          { token: github.token!, repoOwner: github.repoOwner!, repoName: github.repoName!, basePath: github.basePath },
+          updatedState.roadmap.questions
+        );
+        
+        if (readmeResult.success) {
+          alert(`Successfully uploaded to GitHub!\nFile: ${filePath}\nREADME.md updated automatically`);
+        } else {
+          alert(`Successfully uploaded to GitHub!\nFile: ${filePath}\nNote: README update failed`);
+        }
+      } else {
+        setSubmissionError(uploadResult.error || 'Failed to upload to GitHub');
+      }
+    } catch (error: any) {
+      setSubmissionError(error.message || 'Network error');
+    } finally {
+      setSubmittingQuestionId(null);
+    }
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -324,13 +386,30 @@ export default function Roadmap() {
                               </a>
                             )}
                             {!editingNotes && (
-                              <button
-                                onClick={() => handleNotesClick(question.id, question.notes)}
-                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors"
-                                title={question.notes ? 'Edit notes' : 'Add notes'}
-                              >
-                                <StickyNote size={18} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setCurrentQuestionId(question.id);
+                                    setShowSubmissionModal(true);
+                                  }}
+                                  className={`p-2 rounded transition-colors ${
+                                    question.gitCommitUrl
+                                      ? 'bg-green-700 hover:bg-green-600 text-white'
+                                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-accent'
+                                  }`}
+                                  title={question.gitCommitUrl ? 'Update solution on GitHub' : 'Submit solution to GitHub'}
+                                  disabled={!github.token}
+                                >
+                                  <Github size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleNotesClick(question.id, question.notes)}
+                                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors"
+                                  title={question.notes ? 'Edit notes' : 'Add notes'}
+                                >
+                                  <StickyNote size={18} />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -343,6 +422,43 @@ export default function Roadmap() {
           })
         )}
       </div>
+
+      <SubmissionModal
+        isOpen={showSubmissionModal}
+        onClose={() => setShowSubmissionModal(false)}
+        questionId={currentQuestionId || ''}
+        onUpload={async (code, language) => {
+          if (currentQuestionId) {
+            await handleCodeUpload(currentQuestionId, code, language);
+          }
+        }}
+        onManualLink={async (url, date) => {
+          if (currentQuestionId) {
+            const question = roadmap.questions.find(q => q.id === currentQuestionId);
+            if (question) {
+              // Extract file path from URL or generate one
+              const filePath = url.includes('/blob/') 
+                ? url.split('/blob/')[1] 
+                : `${github.basePath}/${question.topics[0]}/manual-link.txt`;
+              
+              updateQuestionGitInfo(currentQuestionId, url, date, filePath);
+              
+              // Auto-update README.md with fresh state
+              const updatedState = useAppStore.getState();
+              const readmeResult = await generateAndUploadReadme(
+                { token: github.token!, repoOwner: github.repoOwner!, repoName: github.repoName!, basePath: github.basePath },
+                updatedState.roadmap.questions
+              );
+              
+              if (readmeResult.success) {
+                alert(`Successfully linked GitHub URL!\nREADME.md updated automatically`);
+              } else {
+                alert(`Successfully linked GitHub URL!\nNote: README update failed`);
+              }
+            }
+          }
+        }}
+      />
     </div>
   );
 }

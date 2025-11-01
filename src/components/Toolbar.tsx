@@ -4,9 +4,10 @@ import { useAppStore } from '@/stores/appStore';
 import { 
   Layout, Code, PenTool, Download, 
   Upload, Save, Tv, MessageCircle,
-  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map
+  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map, Settings, Network
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import GitHubSettingsModal from './GitHubSettingsModal';
 
 export default function Toolbar() {
   const { 
@@ -24,11 +25,13 @@ export default function Toolbar() {
     setTimerSetMinutes,
     setIsTimerRunning,
     resetTimer,
+    github,
   } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTimerControls, setShowTimerControls] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const [showGitHubSettings, setShowGitHubSettings] = useState(false);
 
   const handleSave = () => {
     saveSession();
@@ -156,6 +159,7 @@ export default function Toolbar() {
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
       <div className="flex items-center gap-2">
+        <Network size={28} className="text-accent" />
         <h1 className="text-xl font-bold text-accent mr-4">DSA Studio</h1>
       </div>
 
@@ -275,6 +279,19 @@ export default function Toolbar() {
 
       <div className="flex items-center gap-2">
         <button
+          onClick={() => setShowGitHubSettings(true)}
+          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all ${
+            github.initialized && github.token
+              ? 'bg-green-700 hover:bg-green-600 text-white'
+              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+          }`}
+          title={github.initialized && github.token ? 'GitHub Connected' : 'Configure GitHub'}
+        >
+          <Settings size={16} />
+          GitHub
+        </button>
+
+        <button
           onClick={handleSave}
           className="px-3 py-2 bg-accent hover:bg-blue-700 rounded-lg flex items-center gap-2"
         >
@@ -306,6 +323,11 @@ export default function Toolbar() {
           className="hidden"
         />
       </div>
+
+      <GitHubSettingsModal 
+        isOpen={showGitHubSettings} 
+        onClose={() => setShowGitHubSettings(false)} 
+      />
     </div>
   );
 }
