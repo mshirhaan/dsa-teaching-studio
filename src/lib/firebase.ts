@@ -74,3 +74,41 @@ export const restoreRoadmapData = async (userId: string): Promise<any | null> =>
   }
 };
 
+// Firestore helpers for workspace data (code files and canvas files)
+export const backupWorkspaceData = async (userId: string, codeEditorData: any, drawingData: any) => {
+  try {
+    // Convert the data to JSON strings to avoid Firestore nested array limitations
+    await setDoc(
+      doc(db, 'workspace', userId),
+      {
+        codeEditor: JSON.stringify(codeEditorData),
+        drawing: JSON.stringify(drawingData),
+        lastBackup: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (error: any) {
+    console.error('Error backing up workspace:', error);
+    throw error;
+  }
+};
+
+export const restoreWorkspaceData = async (userId: string): Promise<{ codeEditor: any; drawing: any } | null> => {
+  try {
+    const docRef = doc(db, 'workspace', userId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+        codeEditor: typeof data.codeEditor === 'string' ? JSON.parse(data.codeEditor) : data.codeEditor,
+        drawing: typeof data.drawing === 'string' ? JSON.parse(data.drawing) : data.drawing,
+      };
+    }
+    return null;
+  } catch (error: any) {
+    console.error('Error restoring workspace:', error);
+    throw error;
+  }
+};
+

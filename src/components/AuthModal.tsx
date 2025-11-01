@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, Download, Upload, LogOut } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
-import { signInWithGoogle, logout, backupRoadmapData, restoreRoadmapData, onAuthStateChanged, auth, User } from '@/lib/firebase';
+import { signInWithGoogle, logout, backupRoadmapData, restoreRoadmapData, backupWorkspaceData, restoreWorkspaceData, onAuthStateChanged, auth, User } from '@/lib/firebase';
 import Toast from './Toast';
 
 interface AuthModalProps {
@@ -12,7 +12,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { roadmap } = useAppStore();
+  const { roadmap, codeEditor, drawing } = useAppStore();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -37,7 +37,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  const handleBackup = async () => {
+  const handleBackupRoadmap = async () => {
     if (!user) return;
     
     setIsLoading(true);
@@ -51,7 +51,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  const handleRestore = async () => {
+  const handleRestoreRoadmap = async () => {
     if (!user) return;
     
     if (!confirm('This will overwrite your current roadmap data. Continue?')) {
@@ -62,7 +62,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       const restoredData = await restoreRoadmapData(user.uid);
       if (restoredData) {
-        // Restore the data to store
         useAppStore.getState().roadmap = restoredData;
         setToast({ message: 'Roadmap data restored successfully!', type: 'success' });
       } else {
@@ -70,6 +69,48 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
     } catch (error: any) {
       setToast({ message: error.message || 'Failed to restore data', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBackupWorkspace = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      await backupWorkspaceData(user.uid, codeEditor, drawing);
+      setToast({ message: 'Workspace backed up successfully!', type: 'success' });
+    } catch (error: any) {
+      setToast({ message: error.message || 'Failed to backup workspace', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestoreWorkspace = async () => {
+    if (!user) return;
+    
+    if (!confirm('This will overwrite your current code files and canvas files. Continue?')) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const restoredData = await restoreWorkspaceData(user.uid);
+      
+      if (restoredData) {
+        useAppStore.setState({ 
+          codeEditor: restoredData.codeEditor,
+          drawing: restoredData.drawing 
+        });
+        
+        setToast({ message: 'Workspace restored successfully!', type: 'success' });
+      } else {
+        setToast({ message: 'No backup found', type: 'error' });
+      }
+    } catch (error: any) {
+      setToast({ message: error.message || 'Failed to restore workspace', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -129,56 +170,94 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </div>
 
                 <p className="text-gray-300 mb-4">
-                  Back up your roadmap progress to the cloud and restore it from any device.
+                  Back up your data to the cloud and restore it from any device.
                 </p>
 
-                <div className="space-y-2">
-                  <button
-                    onClick={handleBackup}
-                    disabled={isLoading}
-                    className="w-full px-4 py-3 bg-accent hover:bg-blue-700 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                        Backing up...
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={18} />
-                        Backup to Cloud
-                      </>
-                    )}
-                  </button>
+                {/* Roadmap Section */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2">Roadmap</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleBackupRoadmap}
+                      disabled={isLoading}
+                      className="w-full px-4 py-2 bg-accent hover:bg-blue-700 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Backing up...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} />
+                          Backup Roadmap
+                        </>
+                      )}
+                    </button>
 
-                  <button
-                    onClick={handleRestore}
-                    disabled={isLoading}
-                    className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Download size={18} />
-                    Restore from Cloud
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      setIsLoading(true);
-                      try {
-                        await logout();
-                        setToast({ message: 'Signed out successfully', type: 'success' });
-                      } catch (error: any) {
-                        setToast({ message: error.message || 'Failed to sign out', type: 'error' });
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    disabled={isLoading}
-                    className="w-full px-4 py-3 bg-red-700 hover:bg-red-600 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
-                  >
-                    <LogOut size={18} />
-                    Sign Out
-                  </button>
+                    <button
+                      onClick={handleRestoreRoadmap}
+                      disabled={isLoading}
+                      className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <Download size={16} />
+                      Restore Roadmap
+                    </button>
+                  </div>
                 </div>
+
+                {/* Workspace Section */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2">Workspace (Code & Canvas)</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleBackupWorkspace}
+                      disabled={isLoading}
+                      className="w-full px-4 py-2 bg-accent hover:bg-blue-700 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Backing up...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} />
+                          Backup Workspace
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleRestoreWorkspace}
+                      disabled={isLoading}
+                      className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <Download size={16} />
+                      Restore Workspace
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sign Out */}
+                <button
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await logout();
+                      setToast({ message: 'Signed out successfully', type: 'success' });
+                    } catch (error: any) {
+                      setToast({ message: error.message || 'Failed to sign out', type: 'error' });
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="w-full px-4 py-2 bg-red-700 hover:bg-red-600 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
               </div>
             )}
           </div>

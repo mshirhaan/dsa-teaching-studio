@@ -1,8 +1,9 @@
 # Firebase Setup Guide
 
 ## Overview
-DSA Studio now supports optional Firebase authentication for cloud backup of your roadmap progress. This allows you to:
+DSA Studio now supports optional Firebase authentication for cloud backup of your progress. This allows you to:
 - Backup your roadmap data to the cloud
+- Backup your code files and canvas files to the cloud
 - Restore your progress from any device
 - Keep your data safe and synchronized
 
@@ -48,6 +49,11 @@ service cloud.firestore {
     match /roadmap/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+    
+    // Users can only read/write their own workspace data
+    match /workspace/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }
 ```
@@ -62,15 +68,18 @@ This ensures users can only access their own data.
 3. Authorize DSA Studio to access your Google account
 
 ### Backup Your Data
-1. After signing in, click "Backup to Cloud"
-2. Your roadmap progress will be saved to Firebase
-3. You'll see a success toast notification
+1. After signing in, you'll see two sections: **Roadmap** and **Workspace**
+2. **Backup Roadmap**: Saves your DSA problem progress
+3. **Backup Workspace**: Saves your code files and canvas drawings
+4. Click the appropriate backup button
+5. You'll see a success toast notification
 
 ### Restore Your Data
 1. Sign in with the same Google account
-2. Click "Restore from Cloud"
-3. Your roadmap data will be restored
+2. Choose what to restore: **Roadmap** or **Workspace**
+3. Click "Restore Roadmap" or "Restore Workspace"
 4. Confirm the overwrite when prompted
+5. Your data will be restored from the cloud
 
 ## Security & Privacy
 - All authentication is handled by Firebase
