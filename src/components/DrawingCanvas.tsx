@@ -18,6 +18,7 @@ export default function DrawingCanvas() {
   const updateDrawingFileName = useAppStore((state) => state.updateDrawingFileName);
   const deleteDrawingFile = useAppStore((state) => state.deleteDrawingFile);
   const updateDrawingFileData = useAppStore((state) => state.updateDrawingFileData);
+  const updateLibraryItems = useAppStore((state) => state.updateLibraryItems);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -109,6 +110,11 @@ export default function DrawingCanvas() {
       );
     }, 300); // Debounce for 300ms
   }, [updateDrawingFileData]);
+
+  const handleLibraryChange = useCallback((libraryItems: readonly any[]) => {
+    // Save library items without debouncing (less frequent changes)
+    updateLibraryItems([...libraryItems]); // Convert readonly to mutable array
+  }, [updateLibraryItems]);
 
   useEffect(() => {
     return () => {
@@ -220,6 +226,7 @@ export default function DrawingCanvas() {
           <Excalidraw
             excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
             onChange={handleChange}
+            onLibraryChange={handleLibraryChange}
             theme="dark"
             initialData={{
               elements: currentDrawingFile.elements,
@@ -227,6 +234,7 @@ export default function DrawingCanvas() {
                 theme: 'dark',
               } as any,
               files: currentDrawingFile.files,
+              libraryItems: drawing.libraryItems,
             }}
           />
         )}

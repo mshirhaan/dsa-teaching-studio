@@ -40,6 +40,7 @@ export interface DrawingFile {
 export interface DrawingState {
   currentFileId: string | null;
   files: DrawingFile[];
+  libraryItems?: any[]; // Shared across all canvas files
 }
 
 export interface RoadmapQuestion {
@@ -118,6 +119,7 @@ interface AppStore {
   updateDrawingFileName: (fileId: string, name: string) => void;
   deleteDrawingFile: (fileId: string) => void;
   updateDrawingFileData: (elements: any[], appState: any, files: Record<string, any>) => void;
+  updateLibraryItems: (libraryItems: any[]) => void;
   
   roadmap: RoadmapState;
   toggleQuestionSolved: (questionId: string) => void;
@@ -205,6 +207,7 @@ export const useAppStore = create<AppStore>()(
           },
           files: {},
         }],
+        libraryItems: [],
       },
     };
     set({ 
@@ -260,6 +263,7 @@ export const useAppStore = create<AppStore>()(
           },
           files: legacyDrawing.files || {},
         }],
+        libraryItems: [],
       };
     }
     
@@ -375,10 +379,11 @@ export const useAppStore = create<AppStore>()(
   drawing: {
     currentFileId: null,
     files: [],
+    libraryItems: [],
   },
   updateDrawing: (drawing) => set({ drawing }),
   addDrawingFile: (name) => set((state) => {
-    const newFile: DrawingFile = {
+      const newFile: DrawingFile = {
       id: Date.now().toString(),
       name,
       elements: [],
@@ -440,6 +445,9 @@ export const useAppStore = create<AppStore>()(
       drawing: { ...state.drawing, files: updatedFiles },
     };
   }),
+  updateLibraryItems: (libraryItems) => set((state) => ({
+    drawing: { ...state.drawing, libraryItems },
+  })),
   
   roadmap: {
     questions: initialRoadmapQuestions,
