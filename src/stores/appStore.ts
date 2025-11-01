@@ -21,7 +21,9 @@ export interface CodeEditorState {
   files: CodeFile[];
 }
 
-export interface DrawingState {
+export interface DrawingFile {
+  id: string;
+  name: string;
   elements: any[];
   appState: {
     viewBackgroundColor: string;
@@ -33,6 +35,11 @@ export interface DrawingState {
     currentItemOpacity: number;
   };
   files: Record<string, any>; // Store image files as { [fileId]: { mimeType, id, dataURL, created } }
+}
+
+export interface DrawingState {
+  currentFileId: string | null;
+  files: DrawingFile[];
 }
 
 export interface RoadmapQuestion {
@@ -106,6 +113,11 @@ interface AppStore {
   
   drawing: DrawingState;
   updateDrawing: (state: DrawingState) => void;
+  addDrawingFile: (name: string) => void;
+  selectDrawingFile: (fileId: string) => void;
+  updateDrawingFileName: (fileId: string, name: string) => void;
+  deleteDrawingFile: (fileId: string) => void;
+  updateDrawingFileData: (elements: any[], appState: any, files: Record<string, any>) => void;
   
   roadmap: RoadmapState;
   toggleQuestionSolved: (questionId: string) => void;
@@ -177,20 +189,29 @@ export const useAppStore = create<AppStore>()(
         files: [initialFile],
       },
       drawing: {
-        elements: [],
-        appState: {
-          viewBackgroundColor: '#ffffff',
-          currentItemStrokeColor: '#000000',
-          currentItemBackgroundColor: '#ffffff',
-          currentItemFillStyle: 'solid',
-          currentItemStrokeWidth: 2,
-          currentItemRoughness: 1,
-          currentItemOpacity: 100,
-        },
-        files: {},
+        currentFileId: '1',
+        files: [{
+          id: '1',
+          name: 'Canvas1',
+          elements: [],
+          appState: {
+            viewBackgroundColor: '#ffffff',
+            currentItemStrokeColor: '#000000',
+            currentItemBackgroundColor: '#ffffff',
+            currentItemFillStyle: 'solid',
+            currentItemStrokeWidth: 2,
+            currentItemRoughness: 1,
+            currentItemOpacity: 100,
+          },
+          files: {},
+        }],
       },
     };
-    set({ currentSession: session, codeEditor: session.codeEditor });
+    set({ 
+      currentSession: session, 
+      codeEditor: session.codeEditor,
+      drawing: session.drawing 
+    });
   },
   
   saveSession: () => {
@@ -215,11 +236,39 @@ export const useAppStore = create<AppStore>()(
     set({ currentSession: updatedSession });
   },
   
-  loadSession: (session) => set({ 
-    currentSession: session,
-    codeEditor: session.codeEditor,
-    drawing: session.drawing,
-  }),
+  loadSession: (session) => {
+    // Migrate legacy drawing format to new format
+    let drawing: DrawingState = session.drawing;
+    
+    // Check if this is legacy format (has elements directly, not files array)
+    if (drawing && 'elements' in drawing && !Array.isArray((drawing as any).files)) {
+      const legacyDrawing = drawing as any;
+      drawing = {
+        currentFileId: '1',
+        files: [{
+          id: '1',
+          name: 'Canvas1',
+          elements: legacyDrawing.elements || [],
+          appState: legacyDrawing.appState || {
+            viewBackgroundColor: '#ffffff',
+            currentItemStrokeColor: '#000000',
+            currentItemBackgroundColor: '#ffffff',
+            currentItemFillStyle: 'solid',
+            currentItemStrokeWidth: 2,
+            currentItemRoughness: 1,
+            currentItemOpacity: 100,
+          },
+          files: legacyDrawing.files || {},
+        }],
+      };
+    }
+    
+    set({ 
+      currentSession: { ...session, drawing },
+      codeEditor: session.codeEditor,
+      drawing: drawing,
+    });
+  },
   
   codeEditor: {
     code: '// Welcome to DSA Teaching Studio\n// Start coding here...\n',
@@ -324,19 +373,73 @@ export const useAppStore = create<AppStore>()(
   }),
   
   drawing: {
-    elements: [],
-    appState: {
-      viewBackgroundColor: '#ffffff',
-      currentItemStrokeColor: '#000000',
-      currentItemBackgroundColor: '#ffffff',
-      currentItemFillStyle: 'solid',
-      currentItemStrokeWidth: 2,
-      currentItemRoughness: 1,
-      currentItemOpacity: 100,
-    },
-    files: {},
+    currentFileId: null,
+    files: [],
   },
   updateDrawing: (drawing) => set({ drawing }),
+  addDrawingFile: (name) => set((state) => {
+    const newFile: DrawingFile = {
+      id: Date.now().toString(),
+      name,
+      elements: [],
+      appState: {
+        viewBackgroundColor: '#ffffff',
+        currentItemStrokeColor: '#000000',
+        currentItemBackgroundColor: '#ffffff',
+        currentItemFillStyle: 'solid',
+        currentItemStrokeWidth: 2,
+        currentItemRoughness: 1,
+        currentItemOpacity: 100,
+      },
+      files: {},
+    };
+    return {
+      drawing: {
+        ...state.drawing,
+        files: [...state.drawing.files, newFile],
+        currentFileId: newFile.id,
+      },
+    };
+  }),
+  selectDrawingFile: (fileId) => set((state) => {
+    return {
+      drawing: {
+        ...state.drawing,
+        currentFileId: fileId,
+      },
+    };
+  }),
+  updateDrawingFileName: (fileId, name) => set((state) => {
+    const updatedFiles = state.drawing.files.map(file =>
+      file.id === fileId ? { ...file, name } : file
+    );
+    return {
+      drawing: { ...state.drawing, files: updatedFiles },
+    };
+  }),
+  deleteDrawingFile: (fileId) => set((state) => {
+    const filteredFiles = state.drawing.files.filter(f => f.id !== fileId);
+    const newCurrentFileId = filteredFiles.length > 0 ? filteredFiles[0].id : null;
+    return {
+      drawing: {
+        ...state.drawing,
+        files: filteredFiles,
+        currentFileId: newCurrentFileId,
+      },
+    };
+  }),
+  updateDrawingFileData: (elements, appState, files) => set((state) => {
+    if (!state.drawing.currentFileId) return state;
+    
+    const updatedFiles = state.drawing.files.map(file =>
+      file.id === state.drawing.currentFileId
+        ? { ...file, elements, appState, files }
+        : file
+    );
+    return {
+      drawing: { ...state.drawing, files: updatedFiles },
+    };
+  }),
   
   roadmap: {
     questions: initialRoadmapQuestions,
