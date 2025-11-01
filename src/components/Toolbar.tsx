@@ -4,10 +4,11 @@ import { useAppStore } from '@/stores/appStore';
 import { 
   Layout, Code, PenTool, Download, 
   Upload, Save, Tv, MessageCircle,
-  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map, Settings, Network
+  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map, Settings, Network, Cloud
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import GitHubSettingsModal from './GitHubSettingsModal';
+import AuthModal from './AuthModal';
 
 export default function Toolbar() {
   const { 
@@ -32,6 +33,7 @@ export default function Toolbar() {
   const [customMinutes, setCustomMinutes] = useState('');
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [showGitHubSettings, setShowGitHubSettings] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleSave = () => {
     saveSession();
@@ -279,6 +281,15 @@ export default function Toolbar() {
 
       <div className="flex items-center gap-2">
         <button
+          onClick={() => setShowAuthModal(true)}
+          className="px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded-lg flex items-center gap-2 text-white"
+          title="Cloud Backup"
+        >
+          <Cloud size={16} />
+          Backup
+        </button>
+
+        <button
           onClick={() => setShowGitHubSettings(true)}
           className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all ${
             github.initialized && github.token
@@ -327,6 +338,11 @@ export default function Toolbar() {
       <GitHubSettingsModal 
         isOpen={showGitHubSettings} 
         onClose={() => setShowGitHubSettings(false)} 
+      />
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
       />
     </div>
   );
