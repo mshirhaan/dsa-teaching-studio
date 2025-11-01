@@ -312,15 +312,17 @@ export default function Roadmap() {
 
                           {/* Action Buttons */}
                           <div className="flex flex-col gap-2 flex-shrink-0">
-                            <a
-                              href={question.leetcodeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors"
-                              title="Open in LeetCode"
-                            >
-                              <ExternalLink size={18} />
-                            </a>
+                            {question.leetcodeUrl && (
+                              <a
+                                href={question.leetcodeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors"
+                                title="Open in LeetCode"
+                              >
+                                <ExternalLink size={18} />
+                              </a>
+                            )}
                             {!editingNotes && (
                               <button
                                 onClick={() => handleNotesClick(question.id, question.notes)}

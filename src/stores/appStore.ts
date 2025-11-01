@@ -37,11 +37,11 @@ export interface DrawingState {
 
 export interface RoadmapQuestion {
   id: string;
-  number: number; // LeetCode question number
+  number: number; // LeetCode question number (or serial number for non-LeetCode problems)
   title: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   topics: string[]; // ['Array', 'Two Pointers', etc.]
-  leetcodeUrl: string;
+  leetcodeUrl?: string; // Optional - for non-LeetCode problems
   solved: boolean;
   solvedAt?: number; // timestamp when marked as solved
   notes?: string; // optional user notes
