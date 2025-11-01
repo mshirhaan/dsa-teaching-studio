@@ -520,6 +520,35 @@ export const useAppStore = create<AppStore>()(
         splitRatio: state.splitRatio,
         consoleHeight: state.consoleHeight,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Migrate legacy drawing format if present
+        if (state && state.drawing) {
+          const drawing = state.drawing as any;
+          
+          // Check if this is legacy format (has elements directly, not files array)
+          if (drawing && 'elements' in drawing && !Array.isArray(drawing.files)) {
+            const legacyDrawing = drawing;
+            state.drawing = {
+              currentFileId: '1',
+              files: [{
+                id: '1',
+                name: 'Canvas1',
+                elements: legacyDrawing.elements || [],
+                appState: legacyDrawing.appState || {
+                  viewBackgroundColor: '#ffffff',
+                  currentItemStrokeColor: '#000000',
+                  currentItemBackgroundColor: '#ffffff',
+                  currentItemFillStyle: 'solid',
+                  currentItemStrokeWidth: 2,
+                  currentItemRoughness: 1,
+                  currentItemOpacity: 100,
+                },
+                files: legacyDrawing.files || {},
+              }],
+            };
+          }
+        }
+      },
     }
   )
 );
