@@ -21,6 +21,7 @@ export default function SubmissionModal({ isOpen, onClose, questionId, onUpload,
   const [manualDate, setManualDate] = useState('');
   const [selectedFileId, setSelectedFileId] = useState<string>('');
   const [notes, setNotes] = useState(question?.notes || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const languages = [
     { value: 'javascript', label: 'JavaScript', ext: '.js' },
@@ -61,37 +62,48 @@ export default function SubmissionModal({ isOpen, onClose, questionId, onUpload,
       return;
     }
     
-    // Save notes first
-    if (notes.trim()) {
-      updateQuestionNotes(questionId, notes);
+    setIsSubmitting(true);
+    try {
+      // Save notes first
+      if (notes.trim()) {
+        updateQuestionNotes(questionId, notes);
+      }
+      
+      await onUpload(code, language);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    await onUpload(code, language);
     onClose();
   };
 
-  const handleManualLink = () => {
+  const handleManualLink = async () => {
     if (!manualUrl.trim()) {
       alert('Please enter a GitHub URL');
       return;
     }
     
-    // Save notes first
-    if (notes.trim()) {
-      updateQuestionNotes(questionId, notes);
-    }
-    
-    let timestamp: number;
-    if (manualDate) {
-      timestamp = new Date(manualDate).getTime();
-      if (isNaN(timestamp)) {
-        alert('Invalid date format');
-        return;
+    setIsSubmitting(true);
+    try {
+      // Save notes first
+      if (notes.trim()) {
+        updateQuestionNotes(questionId, notes);
       }
-    } else {
-      timestamp = Date.now();
+      
+      let timestamp: number;
+      if (manualDate) {
+        timestamp = new Date(manualDate).getTime();
+        if (isNaN(timestamp)) {
+          alert('Invalid date format');
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        timestamp = Date.now();
+      }
+      await onManualLink?.(manualUrl, timestamp);
+    } finally {
+      setIsSubmitting(false);
     }
-    onManualLink?.(manualUrl, timestamp);
     onClose();
   };
 
@@ -228,11 +240,20 @@ export default function SubmissionModal({ isOpen, onClose, questionId, onUpload,
 
                   <button
                     onClick={handleManualLink}
-                    disabled={!manualUrl.trim()}
+                    disabled={!manualUrl.trim() || isSubmitting}
                     className="w-full px-4 py-2 bg-accent hover:bg-blue-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    <LinkIcon size={16} />
-                    Link GitHub URL
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Linking...
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon size={16} />
+                        Link GitHub URL
+                      </>
+                    )}
                   </button>
                 </div>
               </>
@@ -243,16 +264,18 @@ export default function SubmissionModal({ isOpen, onClose, questionId, onUpload,
         <div className="flex items-center justify-end gap-2 p-6 border-t border-gray-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!code.trim()}
-            className="px-4 py-2 bg-accent hover:bg-blue-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!code.trim() || isSubmitting}
+            className="px-4 py-2 bg-accent hover:bg-blue-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Submit to GitHub
+            {isSubmitting && <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>}
+            {isSubmitting ? 'Submitting...' : 'Submit to GitHub'}
           </button>
         </div>
       </div>
