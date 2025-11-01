@@ -5,6 +5,7 @@ import { useAppStore } from '@/stores/appStore';
 import { CheckSquare, Square, Search, ExternalLink, StickyNote, X, ChevronDown, ChevronRight, Github, Upload, AlertCircle } from 'lucide-react';
 import SubmissionModal from './SubmissionModal';
 import { generateAndUploadReadme, uploadFile } from '@/utils/githubApi';
+import Toast from './Toast';
 
 export default function Roadmap() {
   const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, github } = useAppStore();
@@ -16,9 +17,9 @@ export default function Roadmap() {
   const [notesValue, setNotesValue] = useState('');
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [submittingQuestionId, setSubmittingQuestionId] = useState<string | null>(null);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Get all unique topics
   const allTopics = useMemo(() => {
@@ -91,12 +92,11 @@ export default function Roadmap() {
 
   const handleCodeUpload = async (questionId: string, code: string, language: string) => {
     if (!github.token || !github.repoOwner || !github.repoName) {
-      setSubmissionError('Please configure GitHub in settings first');
+      setToast({ message: 'Please configure GitHub in settings first', type: 'error' });
       return;
     }
 
     setSubmittingQuestionId(questionId);
-    setSubmissionError(null);
 
     try {
       const question = roadmap.questions.find(q => q.id === questionId);
@@ -131,15 +131,15 @@ export default function Roadmap() {
         );
         
         if (readmeResult.success) {
-          alert(`Successfully uploaded to GitHub!\nFile: ${filePath}\nREADME.md updated automatically`);
+          setToast({ message: `Successfully uploaded to GitHub! README.md updated automatically.`, type: 'success' });
         } else {
-          alert(`Successfully uploaded to GitHub!\nFile: ${filePath}\nNote: README update failed`);
+          setToast({ message: `File uploaded, but README update failed.`, type: 'error' });
         }
       } else {
-        setSubmissionError(uploadResult.error || 'Failed to upload to GitHub');
+        setToast({ message: uploadResult.error || 'Failed to upload to GitHub', type: 'error' });
       }
     } catch (error: any) {
-      setSubmissionError(error.message || 'Network error');
+      setToast({ message: error.message || 'Network error', type: 'error' });
     } finally {
       setSubmittingQuestionId(null);
     }
@@ -451,14 +451,23 @@ export default function Roadmap() {
               );
               
               if (readmeResult.success) {
-                alert(`Successfully linked GitHub URL!\nREADME.md updated automatically`);
+                setToast({ message: 'Successfully linked GitHub URL! README.md updated automatically.', type: 'success' });
               } else {
-                alert(`Successfully linked GitHub URL!\nNote: README update failed`);
+                setToast({ message: 'Link created, but README update failed.', type: 'error' });
               }
             }
           }
         }}
       />
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
