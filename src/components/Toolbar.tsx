@@ -186,9 +186,12 @@ export default function Toolbar() {
               title="Click to show timer settings"
             >
               <Clock size={18} className={isTimeUp ? 'animate-spin' : ''} />
-              <span className={`font-mono text-lg font-semibold min-w-[60px] ${isTimeUp ? 'text-red-200' : 'text-white'}`}>
-                {isTimeUp ? '⏰ TIME UP!' : formatTime(timerMinutes, timerSeconds)}
-              </span>
+              {isTimeUp && <span className="font-mono text-lg font-semibold min-w-[60px] text-red-200">⏰ TIME UP!</span>}
+              {isTimerRunning && !isTimeUp && (
+                <span className="font-mono text-lg font-semibold min-w-[60px] text-white">
+                  {formatTime(timerMinutes, timerSeconds)}
+                </span>
+              )}
             </button>
           ) : (
             <>
