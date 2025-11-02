@@ -404,8 +404,8 @@ export default function Roadmap() {
                                       question.gitCommitUrl
                                         ? 'bg-green-700 hover:bg-green-600 text-white'
                                         : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-accent'
-                                    }`}
-                                    title={question.gitCommitUrl ? 'Update solution on GitHub' : 'Submit solution to GitHub'}
+                                    } ${!github.token ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    title={!github.token ? 'Configure GitHub settings first to enable submission' : (question.gitCommitUrl ? 'Update solution on GitHub' : 'Submit solution to GitHub')}
                                     disabled={!github.token}
                                   >
                                     <Github size={16} />
