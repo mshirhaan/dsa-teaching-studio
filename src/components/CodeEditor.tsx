@@ -183,43 +183,9 @@ export default function CodeEditor() {
     setConsoleOutput('');
     
     try {
-      if (language === 'javascript') {
-        // Capture console.log, console.error, etc.
-        const logs: string[] = [];
-        const originalLog = console.log;
-        const originalError = console.error;
-        
-        console.log = (...args: any[]) => {
-          logs.push(args.map(arg => String(arg)).join(' '));
-          originalLog(...args);
-        };
-        
-        console.error = (...args: any[]) => {
-          logs.push('ERROR: ' + args.map(arg => String(arg)).join(' '));
-          originalError(...args);
-        };
-        
-        // Execute code in a new context
-        const codeToRun = code;
-        try {
-          const result = new Function(codeToRun)();
-          if (result !== undefined) {
-            logs.push(String(result));
-          }
-        } catch (error: any) {
-          logs.push('ERROR: ' + error.message);
-        }
-        
-        // Restore original console methods
-        console.log = originalLog;
-        console.error = originalError;
-        
-        setConsoleOutput(logs.join('\n'));
-      } else {
-        // Use Piston API for other languages
-        const output = await executeWithPiston(code, language);
-        setConsoleOutput(output);
-      }
+      // Use Piston API for all languages to prevent infinite loops from hanging the browser
+      const output = await executeWithPiston(code, language);
+      setConsoleOutput(output);
     } catch (error: any) {
       setConsoleOutput(`Error: ${error.message}`);
     }
