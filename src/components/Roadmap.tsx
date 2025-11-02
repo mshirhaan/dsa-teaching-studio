@@ -305,13 +305,92 @@ export default function Roadmap() {
 
                           {/* Question Info */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-2 flex-wrap">
-                              <h3 className={`font-semibold text-lg ${question.solved ? 'text-green-400' : 'text-white'}`}>
-                                {question.number}. {question.title}
-                              </h3>
+                            {/* Title and Difficulty Row */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {question.leetcodeUrl ? (
+                                <a
+                                  href={question.leetcodeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-lg hover:text-accent transition-colors cursor-pointer hover:underline"
+                                >
+                                  <h3 className={question.solved ? 'text-green-400' : 'text-white'}>
+                                    {question.number}. {question.title}
+                                  </h3>
+                                </a>
+                              ) : (
+                                <h3 className={`font-semibold text-lg ${question.solved ? 'text-green-400' : 'text-white'}`}>
+                                  {question.number}. {question.title}
+                                </h3>
+                              )}
                               <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
                                 {question.difficulty}
                               </span>
+                            </div>
+
+                            {/* Action Icons Row - Below Title */}
+                            <div className="flex items-center gap-3 mt-2">
+                              {question.leetcodeUrl && (
+                                <a
+                                  href={question.leetcodeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm text-gray-300 hover:text-accent"
+                                  title="Open in LeetCode"
+                                >
+                                  <ExternalLink size={16} />
+                                  <span>LeetCode</span>
+                                </a>
+                              )}
+                              {!editingNotes && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setCurrentQuestionId(question.id);
+                                      setShowSubmissionModal(true);
+                                    }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors text-sm ${
+                                      question.gitCommitUrl
+                                        ? 'bg-green-700 hover:bg-green-600 text-white'
+                                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-accent'
+                                    }`}
+                                    title={question.gitCommitUrl ? 'Update solution on GitHub' : 'Submit solution to GitHub'}
+                                    disabled={!github.token}
+                                  >
+                                    <Github size={16} />
+                                    <span>{question.gitCommitUrl ? 'Update GitHub' : 'Submit GitHub'}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleNotesClick(question.id, question.notes)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors text-sm"
+                                    title={question.notes ? 'Edit notes' : 'Add notes'}
+                                  >
+                                    <StickyNote size={16} />
+                                    <span>{question.notes ? 'Edit Notes' : 'Add Notes'}</span>
+                                  </button>
+                                </>
+                              )}
+                              
+                              {/* GitHub Link Indicator */}
+                              {question.gitCommitUrl && (
+                                <a
+                                  href={question.gitCommitUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ml-auto text-xs text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
+                                  title="View on GitHub"
+                                >
+                                  <ExternalLink size={14} />
+                                  <span>View Solution</span>
+                                </a>
+                              )}
+                              
+                              {/* Submission Date */}
+                              {question.submittedAt && (
+                                <span className="text-xs text-gray-500">
+                                  Submitted: {new Date(question.submittedAt).toLocaleDateString()}
+                                </span>
+                              )}
                             </div>
 
                             {/* Topics (all topics, not just main) */}
@@ -369,47 +448,6 @@ export default function Roadmap() {
                               <p className="text-xs text-gray-500 mt-2">
                                 Solved on {new Date(question.solvedAt).toLocaleDateString()}
                               </p>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex flex-col gap-2 flex-shrink-0">
-                            {question.leetcodeUrl && (
-                              <a
-                                href={question.leetcodeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors"
-                                title="Open in LeetCode"
-                              >
-                                <ExternalLink size={18} />
-                              </a>
-                            )}
-                            {!editingNotes && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setCurrentQuestionId(question.id);
-                                    setShowSubmissionModal(true);
-                                  }}
-                                  className={`p-2 rounded transition-colors ${
-                                    question.gitCommitUrl
-                                      ? 'bg-green-700 hover:bg-green-600 text-white'
-                                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-accent'
-                                  }`}
-                                  title={question.gitCommitUrl ? 'Update solution on GitHub' : 'Submit solution to GitHub'}
-                                  disabled={!github.token}
-                                >
-                                  <Github size={18} />
-                                </button>
-                                <button
-                                  onClick={() => handleNotesClick(question.id, question.notes)}
-                                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors"
-                                  title={question.notes ? 'Edit notes' : 'Add notes'}
-                                >
-                                  <StickyNote size={18} />
-                                </button>
-                              </>
                             )}
                           </div>
                         </div>
