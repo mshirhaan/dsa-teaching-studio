@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppStore } from '@/stores/appStore';
 import { CheckSquare, Square, Search, ExternalLink, StickyNote, X, ChevronDown, ChevronRight, Github, Upload, AlertCircle } from 'lucide-react';
 import SubmissionModal from './SubmissionModal';
@@ -15,11 +15,26 @@ export default function Roadmap() {
   const [topicFilter, setTopicFilter] = useState<string>('All');
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState('');
-  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+  // Initialize expanded topics from localStorage
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('roadmap-expanded-topics');
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch (e) {
+          return new Set();
+        }
+      }
+    }
+    return new Set();
+  });
   const [submittingQuestionId, setSubmittingQuestionId] = useState<string | null>(null);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastScrollSaveRef = useRef<number>(0);
 
   // Get all unique topics
   const allTopics = useMemo(() => {
@@ -67,6 +82,42 @@ export default function Roadmap() {
     });
     return grouped;
   }, [filteredQuestions]);
+
+  // Restore scroll position on mount, after topics are loaded
+  useEffect(() => {
+    const savedScrollPosition = localStorage.getItem('roadmap-scroll-position');
+    if (savedScrollPosition && scrollContainerRef.current) {
+      // Small delay to ensure DOM is fully rendered
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          const position = parseInt(savedScrollPosition, 10);
+          scrollContainerRef.current.scrollTop = position;
+        }
+      }, 100);
+    }
+  }, [filteredQuestions.length, expandedTopics]);
+
+  // Save scroll position on scroll (throttled)
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const now = Date.now();
+      if (now - lastScrollSaveRef.current > 200) { // Throttle to max once per 200ms
+        localStorage.setItem('roadmap-scroll-position', scrollContainer.scrollTop.toString());
+        lastScrollSaveRef.current = now;
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Save expanded topics when they change
+  useEffect(() => {
+    localStorage.setItem('roadmap-expanded-topics', JSON.stringify(Array.from(expandedTopics)));
+  }, [expandedTopics]);
 
   const toggleTopic = (topic: string) => {
     setExpandedTopics(prev => {
@@ -243,7 +294,7 @@ export default function Roadmap() {
       </div>
 
       {/* Questions List - Grouped by Topic */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {filteredQuestions.length === 0 ? (
           <div className="text-center text-gray-400 mt-8">
             <p className="text-lg">No questions found</p>
