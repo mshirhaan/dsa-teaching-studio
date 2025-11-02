@@ -106,6 +106,40 @@ export default function Toolbar() {
     return () => clearInterval(interval);
   }, [isTimerRunning, timerMinutes, timerSeconds, setTimerMinutes, setTimerSeconds, setIsTimerRunning]);
 
+  // Keyboard shortcuts for view modes
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.metaKey || e.ctrlKey) {
+        switch (e.key) {
+          case '1':
+            e.preventDefault();
+            setViewMode('split');
+            break;
+          case '2':
+            e.preventDefault();
+            setViewMode('code-only');
+            break;
+          case '3':
+            e.preventDefault();
+            setViewMode('draw-only');
+            break;
+          case '4':
+            e.preventDefault();
+            setViewMode('roadmap');
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [setViewMode]);
+
   const sessionModes = [
     { value: 'teaching' as const, label: 'Teaching', icon: Tv, color: 'bg-blue-600' },
     { value: 'qna' as const, label: 'Q & A', icon: MessageCircle, color: 'bg-green-600' },
@@ -146,13 +180,13 @@ export default function Toolbar() {
     setIsTimeUp(false);
   };
 
-  const ViewModeButton = ({ mode, icon: Icon, label }: { mode: any; icon: any; label: string }) => (
+  const ViewModeButton = ({ mode, icon: Icon, label, shortcut }: { mode: any; icon: any; label: string; shortcut: string }) => (
     <button
       onClick={() => setViewMode(mode)}
       className={`p-2 rounded-lg transition-colors ${
         viewMode === mode ? 'bg-accent text-white' : 'bg-gray-800 hover:bg-gray-700'
       }`}
-      title={label}
+      title={`${label} (${shortcut})`}
     >
       <Icon size={20} />
     </button>
@@ -275,10 +309,10 @@ export default function Toolbar() {
 
         {/* View Mode Buttons */}
         <div className="flex gap-1 bg-gray-700 p-1 rounded-lg">
-          <ViewModeButton mode="split" icon={Layout} label="Split View" />
-          <ViewModeButton mode="code-only" icon={Code} label="Code Only" />
-          <ViewModeButton mode="draw-only" icon={PenTool} label="Draw Only" />
-          <ViewModeButton mode="roadmap" icon={Map} label="Roadmap" />
+          <ViewModeButton mode="split" icon={Layout} label="Split View" shortcut="⌘/Ctrl+1" />
+          <ViewModeButton mode="code-only" icon={Code} label="Code Only" shortcut="⌘/Ctrl+2" />
+          <ViewModeButton mode="draw-only" icon={PenTool} label="Draw Only" shortcut="⌘/Ctrl+3" />
+          <ViewModeButton mode="roadmap" icon={Map} label="Roadmap" shortcut="⌘/Ctrl+4" />
         </div>
       </div>
 
