@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'DSA Teaching Studio',
   description: 'A comprehensive web-based teaching tool for Data Structures & Algorithms',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
