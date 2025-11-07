@@ -150,6 +150,9 @@ interface AppStore {
   setSplitRatio: (ratio: number) => void;
   consoleHeight: number;
   setConsoleHeight: (height: number) => void;
+  
+  showToolbarButtons: boolean;
+  setShowToolbarButtons: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -511,6 +514,9 @@ export const useAppStore = create<AppStore>()(
   setSplitRatio: (ratio) => set({ splitRatio: ratio }),
   consoleHeight: 128, // Default 32 * 4 = 128px (h-32)
   setConsoleHeight: (height) => set({ consoleHeight: height }),
+  
+  showToolbarButtons: true,
+  setShowToolbarButtons: (show) => set({ showToolbarButtons: show }),
 }),
     {
       name: 'dsa-studio-storage',
@@ -533,6 +539,7 @@ export const useAppStore = create<AppStore>()(
         laserMode: state.laserMode,
         splitRatio: state.splitRatio,
         consoleHeight: state.consoleHeight,
+        showToolbarButtons: state.showToolbarButtons,
       }),
       onRehydrateStorage: () => (state) => {
         // Migrate legacy drawing format if present

@@ -27,6 +27,8 @@ export default function Toolbar() {
     setIsTimerRunning,
     resetTimer,
     github,
+    showToolbarButtons,
+    setShowToolbarButtons,
   } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTimerControls, setShowTimerControls] = useState(false);
@@ -316,52 +318,84 @@ export default function Toolbar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Unified button group with background container */}
+      <div className={`flex items-center bg-gray-800 rounded-lg py-1.5 border border-gray-600 shadow-lg transition-all duration-300 ${
+        showToolbarButtons ? 'px-2 gap-1.5' : 'px-1.5'
+      }`}>
+        {/* Settings/gear icon to toggle button visibility */}
         <button
-          onClick={() => setShowAuthModal(true)}
-          className="px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded-lg flex items-center gap-2 text-white"
-          title="Cloud Backup"
+          onClick={() => setShowToolbarButtons(!showToolbarButtons)}
+          className="px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md flex items-center justify-center transition-all duration-200 hover:scale-105"
+          title={showToolbarButtons ? 'Hide toolbar buttons' : 'Show toolbar buttons'}
         >
-          <Cloud size={16} />
-          Backup
+          <Settings 
+            size={18} 
+            className={`transition-transform duration-300 ${showToolbarButtons ? 'rotate-90' : 'rotate-0'}`} 
+          />
         </button>
 
-        <button
-          onClick={() => setShowGitHubSettings(true)}
-          className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all ${
-            github.initialized && github.token
-              ? 'bg-green-700 hover:bg-green-600 text-white'
-              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+        {/* Divider line - only show when buttons are visible */}
+        {showToolbarButtons && (
+          <div className="h-6 w-px bg-gray-600 transition-all duration-300" />
+        )}
+
+        {/* Action buttons with smooth show/hide animation */}
+        <div 
+          className={`flex items-center gap-1.5 transition-all duration-300 overflow-hidden ${
+            showToolbarButtons 
+              ? 'opacity-100 max-w-[1000px]' 
+              : 'opacity-0 max-w-0'
           }`}
-          title={github.initialized && github.token ? 'GitHub Connected' : 'Configure GitHub'}
         >
-          <Settings size={16} />
-          GitHub
-        </button>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 rounded-md flex items-center gap-2 text-white transition-all duration-200 hover:scale-105 whitespace-nowrap"
+            title="Cloud Backup"
+          >
+            <Cloud size={16} />
+            <span className="text-sm font-medium">Backup</span>
+          </button>
 
-        <button
-          onClick={handleSave}
-          className="px-3 py-2 bg-accent hover:bg-blue-700 rounded-lg flex items-center gap-2"
-        >
-          <Save size={16} />
-          Save
-        </button>
+          <button
+            onClick={() => setShowGitHubSettings(true)}
+            className={`px-3 py-1.5 rounded-md flex items-center gap-2 transition-all duration-200 hover:scale-105 whitespace-nowrap ${
+              github.initialized && github.token
+                ? 'bg-green-700 hover:bg-green-600 text-white'
+                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+            }`}
+            title={github.initialized && github.token ? 'GitHub Connected' : 'Configure GitHub'}
+          >
+            <Settings size={16} />
+            <span className="text-sm font-medium">GitHub</span>
+          </button>
 
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center gap-2"
-        >
-          <Upload size={16} />
-          Load
-        </button>
+          <button
+            onClick={handleSave}
+            className="px-3 py-1.5 bg-accent hover:bg-blue-700 rounded-md flex items-center gap-2 text-white transition-all duration-200 hover:scale-105 whitespace-nowrap"
+            title="Save session"
+          >
+            <Save size={16} />
+            <span className="text-sm font-medium">Save</span>
+          </button>
 
-        <button
-          onClick={handleExportCode}
-          className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center gap-2"
-        >
-          <Download size={16} />
-          Export
-        </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md flex items-center gap-2 text-gray-300 transition-all duration-200 hover:scale-105 whitespace-nowrap"
+            title="Load session"
+          >
+            <Upload size={16} />
+            <span className="text-sm font-medium">Load</span>
+          </button>
+
+          <button
+            onClick={handleExportCode}
+            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md flex items-center gap-2 text-gray-300 transition-all duration-200 hover:scale-105 whitespace-nowrap"
+            title="Export code"
+          >
+            <Download size={16} />
+            <span className="text-sm font-medium">Export</span>
+          </button>
+        </div>
 
         <input
           ref={fileInputRef}
