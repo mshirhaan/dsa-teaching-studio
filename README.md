@@ -1,6 +1,6 @@
-# DSA Teaching Studio
+# WorkPad
 
-A comprehensive web-based teaching tool designed for Data Structures & Algorithms instruction, combining a powerful code editor with a fully-featured drawing canvas for live teaching, screen sharing, and interactive demonstrations.
+A versatile workspace for code, notes, and canvas - perfect for development, teaching, and office work. Combining a powerful code editor with a fully-featured drawing canvas for live teaching, screen sharing, note-taking, and interactive demonstrations.
 
 ## Features
 
@@ -40,7 +40,7 @@ A comprehensive web-based teaching tool designed for Data Structures & Algorithm
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd dsa-studio
+cd workpad
 ```
 
 2. Install dependencies:
@@ -58,7 +58,7 @@ npm run dev
 ## Project Structure
 
 ```
-dsa-studio/
+workpad/
 ├── src/
 │   ├── app/                 # Next.js app directory
 │   │   ├── layout.tsx       # Root layout

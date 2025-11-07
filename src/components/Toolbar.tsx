@@ -4,7 +4,7 @@ import { useAppStore } from '@/stores/appStore';
 import { 
   Layout, Code, PenTool, Download, 
   Upload, Save, Tv, MessageCircle,
-  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map, Settings, Network, Cloud
+  Coffee, Trophy, Clock, Play, Pause, RotateCcw, Map, Settings, BookOpen, Cloud
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import GitHubSettingsModal from './GitHubSettingsModal';
@@ -197,8 +197,8 @@ export default function Toolbar() {
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <Network size={28} className="text-accent" />
-        <h1 className="text-xl font-bold text-accent mr-4">DSA Studio</h1>
+        <BookOpen size={28} className="text-accent" />
+        <h1 className="text-xl font-bold text-accent mr-4">WorkPad</h1>
       </div>
 
       {/* Center section: Session mode and timer */}

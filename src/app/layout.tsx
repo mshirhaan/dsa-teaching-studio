@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'DSA Studio',
-  description: 'A comprehensive web-based teaching tool for Data Structures & Algorithms',
+  title: 'WorkPad',
+  description: 'A versatile workspace for code, notes, and canvas - perfect for development, teaching, and office work',
   icons: {
     icon: '/favicon.svg',
   },

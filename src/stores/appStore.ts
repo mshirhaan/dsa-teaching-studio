@@ -183,7 +183,7 @@ export const useAppStore = create<AppStore>()(
     const initialFile: CodeFile = {
       id: '1',
       name: 'main.js',
-      code: '// Welcome to DSA Teaching Studio\n// Start coding here...\n',
+      code: '// Welcome to WorkPad\n// Start coding here...\n',
       language: 'javascript',
     };
     const session: Session = {
@@ -237,14 +237,14 @@ export const useAppStore = create<AppStore>()(
       drawing: state.drawing,
     };
     
-    const sessions = JSON.parse(localStorage.getItem('dsa-sessions') || '[]');
+    const sessions = JSON.parse(localStorage.getItem('workpad-sessions') || '[]');
     const index = sessions.findIndex((s: Session) => s.id === updatedSession.id);
     if (index >= 0) {
       sessions[index] = updatedSession;
     } else {
       sessions.push(updatedSession);
     }
-    localStorage.setItem('dsa-sessions', JSON.stringify(sessions));
+    localStorage.setItem('workpad-sessions', JSON.stringify(sessions));
     set({ currentSession: updatedSession });
   },
   
@@ -284,7 +284,7 @@ export const useAppStore = create<AppStore>()(
   },
   
   codeEditor: {
-    code: '// Welcome to DSA Teaching Studio\n// Start coding here...\n',
+    code: '// Welcome to WorkPad\n// Start coding here...\n',
     language: 'javascript',
     theme: 'vs-dark',
     fontSize: 14,
@@ -318,13 +318,13 @@ export const useAppStore = create<AppStore>()(
     const getDefaultCode = (lang: string): string => {
       switch (lang) {
         case 'javascript':
-          return '// Welcome to DSA Teaching Studio\n// Start coding here...\n';
+          return '// Welcome to WorkPad\n// Start coding here...\n';
         case 'python':
-          return '# Welcome to DSA Teaching Studio\n# Start coding here...\n';
+          return '# Welcome to WorkPad\n# Start coding here...\n';
         case 'cpp':
-          return '// Welcome to DSA Teaching Studio\n// Start coding here...\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}\n';
+          return '// Welcome to WorkPad\n// Start coding here...\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}\n';
         case 'java':
-          return '// Welcome to DSA Teaching Studio\n// Start coding here...\n\npublic class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}\n';
+          return '// Welcome to WorkPad\n// Start coding here...\n\npublic class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}\n';
         default:
           return '';
       }
@@ -519,7 +519,7 @@ export const useAppStore = create<AppStore>()(
   setShowToolbarButtons: (show) => set({ showToolbarButtons: show }),
 }),
     {
-      name: 'dsa-studio-storage',
+      name: 'workpad-storage',
       partialize: (state) => ({
         viewMode: state.viewMode,
         sessionMode: state.sessionMode,
