@@ -124,7 +124,7 @@ interface AppStore {
   selectDrawingFile: (fileId: string) => void;
   updateDrawingFileName: (fileId: string, name: string) => void;
   deleteDrawingFile: (fileId: string) => void;
-  updateDrawingFileData: (elements: any[], appState: any, files: Record<string, any>) => void;
+  updateDrawingFileData: (elements: any[], appState: any, files: Record<string, any>, fileId?: string) => void;
   updateLibraryItems: (libraryItems: any[]) => void;
   
   roadmap: RoadmapState;
@@ -442,11 +442,13 @@ export const useAppStore = create<AppStore>()(
       },
     };
   }),
-  updateDrawingFileData: (elements, appState, files) => set((state) => {
-    if (!state.drawing.currentFileId) return state;
+  updateDrawingFileData: (elements, appState, files, fileId) => set((state) => {
+    // Use provided fileId or fall back to currentFileId
+    const targetFileId = fileId || state.drawing.currentFileId;
+    if (!targetFileId) return state;
     
     const updatedFiles = state.drawing.files.map(file =>
-      file.id === state.drawing.currentFileId
+      file.id === targetFileId
         ? { ...file, elements, appState, files }
         : file
     );

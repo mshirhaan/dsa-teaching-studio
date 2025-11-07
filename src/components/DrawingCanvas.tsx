@@ -27,6 +27,8 @@ export default function DrawingCanvas() {
   const newlyCreatedFileId = useRef<string | null>(null);
   const isUpdatingFromStoreRef = useRef(false);
   const previousFileIdRef = useRef<string | null>(null);
+  const previousFilesHashRef = useRef<string>('');
+  const pendingSaveDataRef = useRef<{ elements: any; appState: any; files: any; fileId: string } | null>(null);
 
 
   // Ensure at least one file exists
@@ -52,18 +54,89 @@ export default function DrawingCanvas() {
     }
   }, [drawing.currentFileId, drawing.files]);
 
-  // Restore scene data when switching tabs or when API becomes available
+  // Save current canvas state before switching tabs
+  // Execute any pending debounced saves immediately when fileId is about to change
+  useEffect(() => {
+    if (previousFileIdRef.current && previousFileIdRef.current !== drawing.currentFileId) {
+      // If there's a pending save for the file we're leaving, execute it immediately
+      if (pendingSaveDataRef.current && pendingSaveDataRef.current.fileId === previousFileIdRef.current) {
+        // Clear the timer and execute the save immediately
+        if (updateTimerRef.current) {
+          clearTimeout(updateTimerRef.current);
+          updateTimerRef.current = null;
+        }
+        
+        const { elements, appState, files, fileId } = pendingSaveDataRef.current;
+        
+        // Convert files object to plain object for storage
+        const filesObj: Record<string, any> = {};
+        if (files) {
+          Object.entries(files).forEach(([fileId, file]: [string, any]) => {
+            filesObj[fileId] = {
+              id: file.id,
+              mimeType: file.mimeType,
+              dataURL: file.dataURL,
+              created: file.created,
+            };
+          });
+        }
+        
+        // Save immediately to the file we're leaving
+        updateDrawingFileData(
+          elements,
+          {
+            viewBackgroundColor: appState.viewBackgroundColor || '#ffffff',
+            currentItemStrokeColor: appState.currentItemStrokeColor || '#000000',
+            currentItemBackgroundColor: appState.currentItemBackgroundColor || '#ffffff',
+            currentItemFillStyle: appState.currentItemFillStyle || 'solid',
+            currentItemStrokeWidth: appState.currentItemStrokeWidth || 2,
+            currentItemRoughness: appState.currentItemRoughness || 1,
+            currentItemOpacity: appState.currentItemOpacity || 100,
+            scrollX: appState.scrollX,
+            scrollY: appState.scrollY,
+            zoom: appState.zoom,
+            offsetLeft: appState.offsetLeft,
+            offsetTop: appState.offsetTop,
+            width: appState.width,
+            height: appState.height,
+          },
+          filesObj,
+          fileId
+        );
+        
+        // Clear the pending save
+        pendingSaveDataRef.current = null;
+      } else if (updateTimerRef.current) {
+        // No pending save data, but clear the timer anyway
+        clearTimeout(updateTimerRef.current);
+        updateTimerRef.current = null;
+      }
+    }
+  }, [drawing.currentFileId, updateDrawingFileData]);
+
+  // Restore scene data when switching tabs, when API becomes available, or when data is restored from backup
   useEffect(() => {
     if (!excalidrawAPI || !drawing.currentFileId) return;
     
-    // Only restore when fileId changes (tab switch) or on initial load
-    if (previousFileIdRef.current === drawing.currentFileId && isInitialized) {
-      return;
-    }
-
-    // Get the latest file data from store
+    // Get the latest file data from store (fresh read)
     const currentFile = useAppStore.getState().drawing.files.find(f => f.id === drawing.currentFileId);
     if (!currentFile) return;
+
+    // Only restore when fileId actually changes (tab switch) or on initial load
+    const fileIdChanged = previousFileIdRef.current !== drawing.currentFileId;
+    
+    // Skip if already initialized and fileId hasn't changed (normal drawing operations)
+    // We only restore on tab switch, not on every edit
+    if (!fileIdChanged && isInitialized && previousFileIdRef.current === drawing.currentFileId) {
+      return;
+    }
+    
+    // Calculate hash for tracking (only update after successful restoration)
+    const currentFileDataHash = JSON.stringify({
+      elementCount: currentFile.elements.length,
+      fileCount: Object.keys(currentFile.files || {}).length,
+      elementIds: currentFile.elements.slice(0, 10).map((el: any) => el.id).join(','),
+    });
 
     // Mark that we're updating from store to prevent circular updates
     isUpdatingFromStoreRef.current = true;
@@ -86,40 +159,66 @@ export default function DrawingCanvas() {
       // Wait a bit for Excalidraw to fully initialize after remount
       await new Promise(resolve => setTimeout(resolve, 150));
       
-      // First, update elements and appState (without scroll position yet)
+      // Get fresh file data in case it changed during the delay
+      const freshFile = useAppStore.getState().drawing.files.find(f => f.id === drawing.currentFileId);
+      if (!freshFile || freshFile.id !== currentFile.id) {
+        // File changed while we were waiting, abort
+        isUpdatingFromStoreRef.current = false;
+        return;
+      }
+      
+      // First, update elements and appState
       excalidrawAPI.updateScene({
-        elements: currentFile.elements,
+        elements: freshFile.elements,
         appState: {
           theme: 'dark',
-          ...currentFile.appState,
+          ...freshFile.appState,
         },
       });
       
       // Then, restore files separately using addFiles (this is more reliable for images)
-      if (Object.keys(excalidrawFiles).length > 0) {
+      const freshExcalidrawFiles: any = {};
+      if (freshFile.files && Object.keys(freshFile.files).length > 0) {
+        Object.entries(freshFile.files).forEach(([fileId, file]: [string, any]) => {
+          freshExcalidrawFiles[fileId] = {
+            id: file.id,
+            mimeType: file.mimeType,
+            dataURL: file.dataURL,
+            created: file.created,
+          };
+        });
+      }
+      
+      if (Object.keys(freshExcalidrawFiles).length > 0) {
         // Give updateScene time to process first
         await new Promise(resolve => setTimeout(resolve, 50));
-        const fileValues = Object.values(excalidrawFiles);
+        const fileValues = Object.values(freshExcalidrawFiles);
         excalidrawAPI.addFiles(fileValues);
       }
       
       // Finally, restore scroll position and zoom after files are loaded
-      // This ensures the viewport is correct even if adding files changed the layout
-      if (currentFile.appState.scrollX !== undefined || 
-          currentFile.appState.scrollY !== undefined || 
-          currentFile.appState.zoom !== undefined) {
+      if (freshFile.appState.scrollX !== undefined || 
+          freshFile.appState.scrollY !== undefined || 
+          freshFile.appState.zoom !== undefined) {
         await new Promise(resolve => setTimeout(resolve, 100));
         excalidrawAPI.updateScene({
           appState: {
-            scrollX: currentFile.appState.scrollX,
-            scrollY: currentFile.appState.scrollY,
-            zoom: currentFile.appState.zoom,
+            scrollX: freshFile.appState.scrollX,
+            scrollY: freshFile.appState.scrollY,
+            zoom: freshFile.appState.zoom,
           },
         });
       }
       
+      // Update tracking refs after successful restoration
       previousFileIdRef.current = drawing.currentFileId;
+      previousFilesHashRef.current = currentFileDataHash;
       setIsInitialized(true);
+      
+      // Clear any pending save data for this file since we just restored
+      if (pendingSaveDataRef.current?.fileId === drawing.currentFileId) {
+        pendingSaveDataRef.current = null;
+      }
       
       // Reset the flag after Excalidraw processes the update
       setTimeout(() => {
@@ -136,6 +235,19 @@ export default function DrawingCanvas() {
       return;
     }
 
+    // CRITICAL: Capture the current fileId at the time of the change
+    // This prevents race conditions when user switches tabs during debounce
+    const currentFileIdAtChange = drawing.currentFileId;
+    if (!currentFileIdAtChange) return;
+
+    // Store the latest data for immediate save if needed
+    pendingSaveDataRef.current = {
+      elements,
+      appState,
+      files,
+      fileId: currentFileIdAtChange,
+    };
+
     // Debounce updates to prevent excessive store updates
     if (updateTimerRef.current) {
       clearTimeout(updateTimerRef.current);
@@ -144,6 +256,11 @@ export default function DrawingCanvas() {
     updateTimerRef.current = setTimeout(() => {
       // Skip if still updating from store (race condition protection)
       if (isUpdatingFromStoreRef.current) {
+        return;
+      }
+
+      // Double-check the pending data is still for the same file
+      if (!pendingSaveDataRef.current || pendingSaveDataRef.current.fileId !== currentFileIdAtChange) {
         return;
       }
 
@@ -161,6 +278,7 @@ export default function DrawingCanvas() {
       }
 
       // Save appState properties including scroll position and zoom
+      // Use the captured fileId to ensure we save to the correct file even if user switched tabs
       updateDrawingFileData(
         elements,
         {
@@ -181,10 +299,16 @@ export default function DrawingCanvas() {
           width: appState.width,
           height: appState.height,
         },
-        filesObj
+        filesObj,
+        currentFileIdAtChange // Pass the captured fileId to ensure correct file is updated
       );
+      
+      // Clear pending save after successful save
+      if (pendingSaveDataRef.current?.fileId === currentFileIdAtChange) {
+        pendingSaveDataRef.current = null;
+      }
     }, 300); // Debounce for 300ms
-  }, [updateDrawingFileData]);
+  }, [updateDrawingFileData, drawing.currentFileId]);
 
   const handleLibraryChange = useCallback((libraryItems: readonly any[]) => {
     // Save library items without debouncing (less frequent changes)
@@ -237,6 +361,10 @@ export default function DrawingCanvas() {
   };
 
   const currentDrawingFile = drawing.files.find(f => f.id === drawing.currentFileId);
+  
+  // Use a stable key based on fileId, but include a restoration trigger
+  // The useEffect will handle data restoration, so we only need to remount on tab switch
+  const excalidrawKey = drawing.currentFileId || 'default';
 
   return (
     <div className="h-full w-full bg-gray-900 flex flex-col">
@@ -299,7 +427,7 @@ export default function DrawingCanvas() {
       <div className="flex-1 overflow-hidden">
         {currentDrawingFile && (
           <Excalidraw
-            key={drawing.currentFileId}
+            key={excalidrawKey}
             excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
             onChange={handleChange}
             onLibraryChange={handleLibraryChange}
