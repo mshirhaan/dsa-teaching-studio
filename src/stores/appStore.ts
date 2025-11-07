@@ -26,13 +26,19 @@ export interface DrawingFile {
   name: string;
   elements: any[];
   appState: {
-    viewBackgroundColor: string;
-    currentItemStrokeColor: string;
-    currentItemBackgroundColor: string;
-    currentItemFillStyle: string;
-    currentItemStrokeWidth: number;
-    currentItemRoughness: number;
-    currentItemOpacity: number;
+    viewBackgroundColor?: string;
+    currentItemStrokeColor?: string;
+    currentItemBackgroundColor?: string;
+    currentItemFillStyle?: string;
+    currentItemStrokeWidth?: number;
+    currentItemRoughness?: number;
+    currentItemOpacity?: number;
+    // Viewport properties for scroll position and zoom
+    scrollX?: number;
+    scrollY?: number;
+    zoom?: { value: number };
+    // Allow other appState properties
+    [key: string]: any;
   };
   files: Record<string, any>; // Store image files as { [fileId]: { mimeType, id, dataURL, created } }
 }

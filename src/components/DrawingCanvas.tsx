@@ -25,6 +25,8 @@ export default function DrawingCanvas() {
   const [editingFileName, setEditingFileName] = useState<string | null>(null);
   const [newFileName, setNewFileName] = useState('');
   const newlyCreatedFileId = useRef<string | null>(null);
+  const isUpdatingFromStoreRef = useRef(false);
+  const previousFileIdRef = useRef<string | null>(null);
 
 
   // Ensure at least one file exists
@@ -50,38 +52,101 @@ export default function DrawingCanvas() {
     }
   }, [drawing.currentFileId, drawing.files]);
 
-  // Load tab state when switching tabs
+  // Restore scene data when switching tabs or when API becomes available
   useEffect(() => {
     if (!excalidrawAPI || !drawing.currentFileId) return;
     
-    const currentFile = drawing.files.find(f => f.id === drawing.currentFileId);
+    // Only restore when fileId changes (tab switch) or on initial load
+    if (previousFileIdRef.current === drawing.currentFileId && isInitialized) {
+      return;
+    }
+
+    // Get the latest file data from store
+    const currentFile = useAppStore.getState().drawing.files.find(f => f.id === drawing.currentFileId);
     if (!currentFile) return;
 
-    // Save current tab before switching if needed
-    // Then load the new tab
-    excalidrawAPI.updateScene({
-      elements: currentFile.elements,
-      appState: {
-        theme: 'dark',
-      },
-      files: currentFile.files,
-    });
+    // Mark that we're updating from store to prevent circular updates
+    isUpdatingFromStoreRef.current = true;
     
-    // Restore files if they exist
-    if (Object.keys(currentFile.files).length > 0) {
-      excalidrawAPI.addFiles(Object.values(currentFile.files));
+    // Convert stored files back to Excalidraw file format
+    const excalidrawFiles: any = {};
+    if (currentFile.files && Object.keys(currentFile.files).length > 0) {
+      Object.entries(currentFile.files).forEach(([fileId, file]: [string, any]) => {
+        excalidrawFiles[fileId] = {
+          id: file.id,
+          mimeType: file.mimeType,
+          dataURL: file.dataURL,
+          created: file.created,
+        };
+      });
     }
     
-    setIsInitialized(true);
-  }, [excalidrawAPI, drawing.currentFileId, drawing.files]);
+    // Wait for API to be ready, then restore the scene
+    const restoreScene = async () => {
+      // Wait a bit for Excalidraw to fully initialize after remount
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // First, update elements and appState (without scroll position yet)
+      excalidrawAPI.updateScene({
+        elements: currentFile.elements,
+        appState: {
+          theme: 'dark',
+          ...currentFile.appState,
+        },
+      });
+      
+      // Then, restore files separately using addFiles (this is more reliable for images)
+      if (Object.keys(excalidrawFiles).length > 0) {
+        // Give updateScene time to process first
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const fileValues = Object.values(excalidrawFiles);
+        excalidrawAPI.addFiles(fileValues);
+      }
+      
+      // Finally, restore scroll position and zoom after files are loaded
+      // This ensures the viewport is correct even if adding files changed the layout
+      if (currentFile.appState.scrollX !== undefined || 
+          currentFile.appState.scrollY !== undefined || 
+          currentFile.appState.zoom !== undefined) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        excalidrawAPI.updateScene({
+          appState: {
+            scrollX: currentFile.appState.scrollX,
+            scrollY: currentFile.appState.scrollY,
+            zoom: currentFile.appState.zoom,
+          },
+        });
+      }
+      
+      previousFileIdRef.current = drawing.currentFileId;
+      setIsInitialized(true);
+      
+      // Reset the flag after Excalidraw processes the update
+      setTimeout(() => {
+        isUpdatingFromStoreRef.current = false;
+      }, 250);
+    };
+
+    restoreScene();
+  }, [excalidrawAPI, drawing.currentFileId, isInitialized]);
 
   const handleChange = useCallback((elements: any, appState: any, files: any) => {
-    // Debounce updates to prevent infinite loops
+    // Skip updates if we're currently updating from the store to prevent circular updates
+    if (isUpdatingFromStoreRef.current) {
+      return;
+    }
+
+    // Debounce updates to prevent excessive store updates
     if (updateTimerRef.current) {
       clearTimeout(updateTimerRef.current);
     }
 
     updateTimerRef.current = setTimeout(() => {
+      // Skip if still updating from store (race condition protection)
+      if (isUpdatingFromStoreRef.current) {
+        return;
+      }
+
       // Convert files object to plain object for storage
       const filesObj: Record<string, any> = {};
       if (files) {
@@ -95,6 +160,7 @@ export default function DrawingCanvas() {
         });
       }
 
+      // Save appState properties including scroll position and zoom
       updateDrawingFileData(
         elements,
         {
@@ -105,6 +171,15 @@ export default function DrawingCanvas() {
           currentItemStrokeWidth: appState.currentItemStrokeWidth || 2,
           currentItemRoughness: appState.currentItemRoughness || 1,
           currentItemOpacity: appState.currentItemOpacity || 100,
+          // Save viewport properties for scroll position and zoom
+          scrollX: appState.scrollX,
+          scrollY: appState.scrollY,
+          zoom: appState.zoom,
+          // Save other viewport-related properties
+          offsetLeft: appState.offsetLeft,
+          offsetTop: appState.offsetTop,
+          width: appState.width,
+          height: appState.height,
         },
         filesObj
       );
@@ -224,6 +299,7 @@ export default function DrawingCanvas() {
       <div className="flex-1 overflow-hidden">
         {currentDrawingFile && (
           <Excalidraw
+            key={drawing.currentFileId}
             excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
             onChange={handleChange}
             onLibraryChange={handleLibraryChange}
@@ -231,9 +307,12 @@ export default function DrawingCanvas() {
             initialData={{
               elements: currentDrawingFile.elements,
               appState: {
+                ...currentDrawingFile.appState,
+                // Ensure theme is always dark
                 theme: 'dark',
               } as any,
-              files: currentDrawingFile.files,
+              // Don't include files in initialData - we'll restore them via API to avoid conflicts
+              files: {},
               libraryItems: drawing.libraryItems,
             }}
           />
