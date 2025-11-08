@@ -95,10 +95,6 @@ export default function DrawingCanvas() {
             scrollX: appState.scrollX,
             scrollY: appState.scrollY,
             zoom: appState.zoom,
-            offsetLeft: appState.offsetLeft,
-            offsetTop: appState.offsetTop,
-            width: appState.width,
-            height: appState.height,
           },
           filesObj,
           fileId
@@ -293,11 +289,6 @@ export default function DrawingCanvas() {
           scrollX: appState.scrollX,
           scrollY: appState.scrollY,
           zoom: appState.zoom,
-          // Save other viewport-related properties
-          offsetLeft: appState.offsetLeft,
-          offsetTop: appState.offsetTop,
-          width: appState.width,
-          height: appState.height,
         },
         filesObj,
         currentFileIdAtChange // Pass the captured fileId to ensure correct file is updated
