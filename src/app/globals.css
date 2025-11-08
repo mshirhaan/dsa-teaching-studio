@@ -46,11 +46,16 @@ body {
 }
 
 /* Laser mode - hide Monaco editor cursor */
-.laser-mode-active .monaco-editor .monaco-mouse-cursor-text {
+.laser-mode-active .monaco-editor .cursor {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.laser-mode-active .monaco-editor .cursors-layer {
   display: none !important;
 }
 
-.laser-mode-active .monaco-editor .cursor {
+.laser-mode-active .monaco-editor .cursors-layer > .cursor {
   display: none !important;
 }
 
@@ -59,6 +64,10 @@ body {
 }
 
 .laser-mode-active .monaco-editor {
+  cursor: none !important;
+}
+
+.laser-mode-active .monaco-editor * {
   cursor: none !important;
 }
 
