@@ -38,6 +38,7 @@ export default function CodeEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [laserPosition, setLaserPosition] = useState({ x: 0, y: 0 });
   const newlyCreatedFileId = useRef<string | null>(null); // 'new' means file was just created
+  const pendingAutoRun = useRef<boolean>(false); // Track if we need to run after current execution
 
   useEffect(() => {
     setLocalCode(codeEditor.code);
@@ -63,14 +64,21 @@ export default function CodeEditor() {
 
   // Auto-run when code changes and auto-run is enabled
   useEffect(() => {
-    if (autoRun && code && !isRunning) {
-      const timeoutId = setTimeout(() => {
+    if (!autoRun || !code) return;
+    
+    // Always set up a new debounce timer when code changes
+    const timeoutId = setTimeout(() => {
+      // If already running, mark that we need to run again after completion
+      if (isRunning) {
+        pendingAutoRun.current = true;
+      } else {
         handleRun();
-      }, 500); // Debounce: wait 500ms after last change
-      return () => clearTimeout(timeoutId);
-    }
+      }
+    }, 500); // Debounce: wait 500ms after last change
+    
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, autoRun]); // Remove isRunning from deps to prevent loop
+  }, [code, autoRun]); // isRunning intentionally not in deps - we check it when timer fires
 
   // Track mouse position for laser pointer
   useEffect(() => {
@@ -181,6 +189,7 @@ export default function CodeEditor() {
   const handleRun = async () => {
     setIsRunning(true);
     setConsoleOutput('');
+    pendingAutoRun.current = false; // Clear pending flag at start
     
     try {
       // Use Piston API for all languages to prevent infinite loops from hanging the browser
@@ -191,6 +200,13 @@ export default function CodeEditor() {
     }
     
     setIsRunning(false);
+    
+    // If code changed while we were running and auto-run is enabled, run again
+    if (pendingAutoRun.current && autoRun) {
+      pendingAutoRun.current = false;
+      // Small delay to prevent tight loop
+      setTimeout(() => handleRun(), 100);
+    }
   };
 
   const handleZoomIn = () => {
