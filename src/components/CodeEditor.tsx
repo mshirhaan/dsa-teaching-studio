@@ -80,7 +80,7 @@ export default function CodeEditor() {
       } else {
         handleRun();
       }
-    }, 500); // Debounce: wait 500ms after last change
+    }, 300); // Debounce: wait 300ms after last change
     
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
