@@ -186,7 +186,7 @@ export default function Toolbar() {
     <button
       onClick={() => setViewMode(mode)}
       className={`p-2 rounded-lg transition-colors ${
-        viewMode === mode ? 'bg-accent text-white' : 'bg-gray-800 hover:bg-gray-700'
+        viewMode === mode ? 'bg-accent text-white' : 'bg-gray-800 hover:bg-gray-600 text-gray-300'
       }`}
       title={`${label} (${shortcut})`}
     >
