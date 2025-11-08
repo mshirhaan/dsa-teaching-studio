@@ -64,7 +64,13 @@ export default function CodeEditor() {
 
   // Auto-run when code changes and auto-run is enabled
   useEffect(() => {
-    if (!autoRun || !code) return;
+    if (!autoRun) return;
+    
+    // If code is empty, clear the console immediately
+    if (!code) {
+      setConsoleOutput('');
+      return;
+    }
     
     // Always set up a new debounce timer when code changes
     const timeoutId = setTimeout(() => {
@@ -188,7 +194,6 @@ export default function CodeEditor() {
 
   const handleRun = async () => {
     setIsRunning(true);
-    setConsoleOutput('');
     pendingAutoRun.current = false; // Clear pending flag at start
     
     try {
