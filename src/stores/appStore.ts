@@ -131,6 +131,7 @@ interface AppStore {
   toggleQuestionSolved: (questionId: string) => void;
   updateQuestionNotes: (questionId: string, notes: string) => void;
   updateQuestionGitInfo: (questionId: string, gitCommitUrl: string, submittedAt: number, gitFilePath: string) => void;
+  deleteQuestionGitInfo: (questionId: string) => void;
   
   github: GitHubConfig;
   setGitHubConfig: (config: Partial<GitHubConfig>) => void;
@@ -486,6 +487,14 @@ export const useAppStore = create<AppStore>()(
       ...state.roadmap,
       questions: state.roadmap.questions.map(q =>
         q.id === questionId ? { ...q, gitCommitUrl, submittedAt, gitFilePath } : q
+      ),
+    },
+  })),
+  deleteQuestionGitInfo: (questionId) => set((state) => ({
+    roadmap: {
+      ...state.roadmap,
+      questions: state.roadmap.questions.map(q =>
+        q.id === questionId ? { ...q, gitCommitUrl: undefined, submittedAt: undefined, gitFilePath: undefined } : q
       ),
     },
   })),

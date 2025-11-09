@@ -8,7 +8,7 @@ import { generateAndUploadReadme, uploadFile } from '@/utils/githubApi';
 import Toast from './Toast';
 
 export default function Roadmap() {
-  const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, github } = useAppStore();
+  const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, deleteQuestionGitInfo, github } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Solved' | 'Unsolved'>('All');
@@ -139,6 +139,36 @@ export default function Roadmap() {
   const handleNotesSave = (questionId: string) => {
     updateQuestionNotes(questionId, notesValue);
     setEditingNotes(null);
+  };
+
+  const handleDeleteSubmission = async (questionId: string) => {
+    if (!confirm('Are you sure you want to delete this submission? This will update your README.md file.')) {
+      return;
+    }
+
+    try {
+      // Clear the submission info from local state
+      deleteQuestionGitInfo(questionId);
+
+      // If GitHub is configured, update the README.md file
+      if (github.token && github.repoOwner && github.repoName) {
+        const updatedState = useAppStore.getState();
+        const readmeResult = await generateAndUploadReadme(
+          { token: github.token, repoOwner: github.repoOwner, repoName: github.repoName, basePath: github.basePath },
+          updatedState.roadmap.questions
+        );
+
+        if (readmeResult.success) {
+          setToast({ message: 'Submission deleted and README.md updated successfully!', type: 'success' });
+        } else {
+          setToast({ message: 'Submission deleted locally, but README update failed.', type: 'error' });
+        }
+      } else {
+        setToast({ message: 'Submission deleted locally.', type: 'success' });
+      }
+    } catch (error: any) {
+      setToast({ message: error.message || 'Failed to delete submission', type: 'error' });
+    }
   };
 
   const handleCodeUpload = async (questionId: string, code: string, language: string) => {
@@ -424,16 +454,25 @@ export default function Roadmap() {
                               
                               {/* GitHub Link Indicator */}
                               {question.gitCommitUrl && (
-                                <a
-                                  href={question.gitCommitUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="ml-auto text-xs text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
-                                  title="View on GitHub"
-                                >
-                                  <ExternalLink size={14} />
-                                  <span>View Solution</span>
-                                </a>
+                                <div className="ml-auto flex items-center gap-2">
+                                  <a
+                                    href={question.gitCommitUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
+                                    title="View on GitHub"
+                                  >
+                                    <ExternalLink size={14} />
+                                    <span>View Solution</span>
+                                  </a>
+                                  <button
+                                    onClick={() => handleDeleteSubmission(question.id)}
+                                    className="text-xs text-red-400 hover:text-red-300 transition-colors p-1 hover:bg-red-900/20 rounded"
+                                    title="Delete submission"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
                               )}
                               
                               {/* Submission Date */}
