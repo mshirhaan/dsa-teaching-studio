@@ -9,10 +9,24 @@ import Toast from './Toast';
 
 export default function Roadmap() {
   const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, deleteQuestionGitInfo, github } = useAppStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Solved' | 'Unsolved'>('All');
-  const [topicFilter, setTopicFilter] = useState<string>('All');
+  const [searchTerm, setSearchTerm] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('roadmap-filter-search') || '';
+  });
+  const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>(() => {
+    if (typeof window === 'undefined') return 'All';
+    const stored = localStorage.getItem('roadmap-filter-difficulty');
+    return stored === 'Easy' || stored === 'Medium' || stored === 'Hard' ? stored : 'All';
+  });
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Solved' | 'Unsolved'>(() => {
+    if (typeof window === 'undefined') return 'All';
+    const stored = localStorage.getItem('roadmap-filter-status');
+    return stored === 'Solved' || stored === 'Unsolved' ? stored : 'All';
+  });
+  const [topicFilter, setTopicFilter] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'All';
+    return localStorage.getItem('roadmap-filter-topic') || 'All';
+  });
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState('');
   // Initialize expanded topics from localStorage
@@ -36,12 +50,40 @@ export default function Roadmap() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastScrollSaveRef = useRef<number>(0);
 
+  // Persist filters to localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('roadmap-filter-search', searchTerm);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('roadmap-filter-difficulty', difficultyFilter);
+  }, [difficultyFilter]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('roadmap-filter-status', statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('roadmap-filter-topic', topicFilter);
+  }, [topicFilter]);
+
   // Get all unique topics
   const allTopics = useMemo(() => {
     const topics = new Set<string>();
     roadmap.questions.forEach(q => q.topics.forEach(t => topics.add(t)));
     return Array.from(topics).sort();
   }, [roadmap.questions]);
+
+  // Ensure persisted topic filter is still valid
+  useEffect(() => {
+    if (topicFilter !== 'All' && !allTopics.includes(topicFilter)) {
+      setTopicFilter('All');
+    }
+  }, [allTopics, topicFilter]);
 
   // Filter questions
   const filteredQuestions = useMemo(() => {
