@@ -428,37 +428,38 @@ export default function CodeEditor() {
         <div className="flex items-center gap-2 px-4 py-2 border-l border-gray-700 flex-shrink-0">
           <button
             onClick={() => setLaserMode(!laserMode)}
-            className={`px-3 py-1 rounded-lg flex items-center gap-2 border-2 transition-colors ${
+            className={`p-2 rounded-lg flex items-center justify-center border-2 transition-all duration-300 transform hover:scale-105 ${
               laserMode 
                 ? 'bg-red-900 border-red-600 text-red-200' 
                 : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
             }`}
             title="Laser Pointer: Highlight cursor for teaching"
+            aria-label="Toggle laser pointer mode"
           >
-            <Flashlight size={16} />
-            Laser
+            <Flashlight size={18} />
           </button>
 
           <button
             onClick={() => !isRunning && executeCurrentCode()}
-            className="px-4 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2"
+            className="p-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center justify-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             disabled={isRunning}
+            title="Run code"
+            aria-label="Run code"
           >
-            <Play size={16} />
-            Run
+            <Play size={18} />
           </button>
 
           <button
             onClick={() => setAutoRun(!autoRun)}
-            className={`px-3 py-1 rounded-lg flex items-center gap-2 border-2 transition-colors ${
+            className={`p-2 rounded-lg flex items-center justify-center border-2 transition-all duration-300 transform hover:scale-105 ${
               autoRun 
                 ? 'bg-green-900 border-green-600 text-green-200' 
                 : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
             }`}
             title="Auto Run: Automatically execute code when it changes"
+            aria-label="Toggle auto-run mode"
           >
-            <RotateCcw size={16} />
-            Auto
+            <RotateCcw size={18} />
           </button>
 
           <select
