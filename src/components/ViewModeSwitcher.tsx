@@ -12,10 +12,10 @@ interface ViewModeConfig {
 }
 
 const viewModes: ViewModeConfig[] = [
-  { mode: 'split', icon: Layout, label: 'Split View', shortcut: '⌘/Ctrl+1' },
-  { mode: 'code-only', icon: Code, label: 'Code Only', shortcut: '⌘/Ctrl+2' },
-  { mode: 'draw-only', icon: PenTool, label: 'Draw Only', shortcut: '⌘/Ctrl+3' },
-  { mode: 'roadmap', icon: Map, label: 'Roadmap', shortcut: '⌘/Ctrl+4' },
+  { mode: 'split', icon: Layout, label: 'Split View', shortcut: '1' },
+  { mode: 'code-only', icon: Code, label: 'Code Only', shortcut: '2' },
+  { mode: 'draw-only', icon: PenTool, label: 'Draw Only', shortcut: '3' },
+  { mode: 'roadmap', icon: Map, label: 'Roadmap', shortcut: '4' },
 ];
 
 // Stable class strings to prevent flickering
@@ -78,25 +78,33 @@ const ViewModeSwitcher = memo(() => {
         return;
       }
 
-      if (e.metaKey || e.ctrlKey) {
-        switch (e.key) {
-          case '1':
-            e.preventDefault();
-            setViewMode('split');
-            break;
-          case '2':
-            e.preventDefault();
-            setViewMode('code-only');
-            break;
-          case '3':
-            e.preventDefault();
-            setViewMode('draw-only');
-            break;
-          case '4':
-            e.preventDefault();
-            setViewMode('roadmap');
-            break;
-        }
+      // Don't trigger if typing in Monaco editor or any contenteditable element
+      const target = e.target as HTMLElement;
+      if (
+        target.closest('.monaco-editor') || 
+        target.contentEditable === 'true' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case '1':
+          e.preventDefault();
+          setViewMode('split');
+          break;
+        case '2':
+          e.preventDefault();
+          setViewMode('code-only');
+          break;
+        case '3':
+          e.preventDefault();
+          setViewMode('draw-only');
+          break;
+        case '4':
+          e.preventDefault();
+          setViewMode('roadmap');
+          break;
       }
     };
 
