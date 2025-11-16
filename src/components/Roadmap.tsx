@@ -460,23 +460,10 @@ export default function Roadmap() {
                               )}
                             </div>
 
-                            {/* Action Buttons - Optimized UX Layout */}
+                          {/* Action Buttons - Optimized UX Layout */}
                             <div className="flex items-center gap-3 mt-3">
                               {/* Primary Actions Group */}
                               <div className="flex items-center gap-2">
-                                {question.leetcodeUrl && (
-                                  <a
-                                    href={question.leetcodeUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md transition-all duration-200 text-sm text-gray-300 hover:text-accent"
-                                    title="Open in LeetCode"
-                                  >
-                                    <ExternalLink size={16} />
-                                    <span>LeetCode</span>
-                                  </a>
-                                )}
-                                
                                 {/* View Solution - Primary CTA */}
                                 {question.gitCommitUrl && (
                                   <a
