@@ -429,46 +429,56 @@ export default function Roadmap() {
                           {/* Question Info */}
                           <div className="flex-1 min-w-0">
                             {/* Title and Difficulty Row */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {question.leetcodeUrl ? (
-                                <a
-                                  href={question.leetcodeUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-semibold text-lg hover:text-accent transition-colors cursor-pointer hover:underline"
-                                >
-                                  <h3 className={question.solved ? 'text-green-400' : 'text-white'}>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {question.leetcodeUrl ? (
+                                  <a
+                                    href={question.leetcodeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-semibold text-lg hover:text-accent transition-colors cursor-pointer hover:underline"
+                                  >
+                                    <h3 className={question.solved ? 'text-green-400' : 'text-white'}>
+                                      {question.number}. {question.title}
+                                    </h3>
+                                  </a>
+                                ) : (
+                                  <h3 className={`font-semibold text-lg ${question.solved ? 'text-green-400' : 'text-white'}`}>
                                     {question.number}. {question.title}
                                   </h3>
-                                </a>
-                              ) : (
-                                <h3 className={`font-semibold text-lg ${question.solved ? 'text-green-400' : 'text-white'}`}>
-                                  {question.number}. {question.title}
-                                </h3>
+                                )}
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
+                                  {question.difficulty}
+                                </span>
+                              </div>
+                              
+                              {/* Solved Date - Top Right */}
+                              {question.solved && question.solvedAt && (
+                                <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  Solved {new Date(question.solvedAt).toLocaleDateString()}
+                                </span>
                               )}
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
-                                {question.difficulty}
-                              </span>
                             </div>
 
-                            {/* Action Icons Row - Below Title */}
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              {question.leetcodeUrl && (
-                                <a
-                                  href={question.leetcodeUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md transition-all duration-200 text-sm text-gray-300 hover:text-accent"
-                                  title="Open in LeetCode"
-                                >
-                                  <ExternalLink size={16} />
-                                  <span>LeetCode</span>
-                                </a>
-                              )}
-                              
-                              {/* View Solution - Primary action, most prominent */}
-                              {question.gitCommitUrl && (
-                                <>
+                            {/* Action Buttons - Optimized UX Layout */}
+                            <div className="flex items-center gap-3 mt-3">
+                              {/* Primary Actions Group */}
+                              <div className="flex items-center gap-2">
+                                {question.leetcodeUrl && (
+                                  <a
+                                    href={question.leetcodeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md transition-all duration-200 text-sm text-gray-300 hover:text-accent"
+                                    title="Open in LeetCode"
+                                  >
+                                    <ExternalLink size={16} />
+                                    <span>LeetCode</span>
+                                  </a>
+                                )}
+                                
+                                {/* View Solution - Primary CTA */}
+                                {question.gitCommitUrl && (
                                   <a
                                     href={question.gitCommitUrl}
                                     target="_blank"
@@ -479,12 +489,12 @@ export default function Roadmap() {
                                     <Github size={17} />
                                     <span>View Solution</span>
                                   </a>
-                                  <div className="h-6 w-px bg-gray-700" />
-                                </>
-                              )}
-                              
+                                )}
+                              </div>
+
+                              {/* Secondary Actions Group */}
                               {!editingNotes && (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 pl-2 border-l border-gray-700">
                                   <button
                                     onClick={() => {
                                       setCurrentQuestionId(question.id);
@@ -499,7 +509,7 @@ export default function Roadmap() {
                                     disabled={!github.token}
                                   >
                                     <Github size={16} />
-                                    <span>{question.gitCommitUrl ? 'Update GitHub' : 'Submit GitHub'}</span>
+                                    <span>{question.gitCommitUrl ? 'Update' : 'Submit'}</span>
                                   </button>
                                   <button
                                     onClick={() => handleNotesClick(question.id, question.notes)}
@@ -507,31 +517,21 @@ export default function Roadmap() {
                                     title={question.notes ? 'Edit notes' : 'Add notes'}
                                   >
                                     <StickyNote size={16} />
-                                    <span>{question.notes ? 'Edit Notes' : 'Add Notes'}</span>
+                                    <span>Notes</span>
                                   </button>
-                                  
-                                  {/* Delete submission button - visually separated */}
-                                  {question.gitCommitUrl && (
-                                    <>
-                                      <div className="h-6 w-px bg-gray-700" />
-                                      <button
-                                        onClick={() => handleDeleteSubmission(question.id)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 rounded-md text-red-300 hover:text-red-100 transition-all duration-200 text-sm border border-red-800/50 hover:border-red-700/70"
-                                        title="Delete submission"
-                                      >
-                                        <X size={16} />
-                                        <span>Delete</span>
-                                      </button>
-                                    </>
-                                  )}
                                 </div>
                               )}
-                              
-                              {/* Submission Date */}
-                              {question.submittedAt && (
-                                <span className="text-xs text-gray-500 ml-auto">
-                                  Submitted: {new Date(question.submittedAt).toLocaleDateString()}
-                                </span>
+
+                              {/* Destructive Action - Icon only, visually separated */}
+                              {!editingNotes && question.gitCommitUrl && (
+                                <button
+                                  onClick={() => handleDeleteSubmission(question.id)}
+                                  className="ml-auto p-2 bg-red-950/30 hover:bg-red-900/50 rounded-md text-red-400 hover:text-red-300 transition-all duration-200 border border-red-800/30 hover:border-red-700/50"
+                                  title="Delete submission"
+                                  aria-label="Delete submission"
+                                >
+                                  <X size={18} />
+                                </button>
                               )}
                             </div>
 
@@ -584,13 +584,6 @@ export default function Roadmap() {
                                 </div>
                               </div>
                             ) : null}
-
-                            {/* Solved timestamp */}
-                            {question.solved && question.solvedAt && (
-                              <p className="text-xs text-gray-500 mt-2">
-                                Solved on {new Date(question.solvedAt).toLocaleDateString()}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </div>
