@@ -452,7 +452,7 @@ export default function Roadmap() {
                             </div>
 
                             {/* Action Icons Row - Below Title */}
-                            <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-3 mt-2 flex-wrap">
                               {question.leetcodeUrl && (
                                 <a
                                   href={question.leetcodeUrl}
@@ -465,6 +465,21 @@ export default function Roadmap() {
                                   <span>LeetCode</span>
                                 </a>
                               )}
+                              
+                              {/* View Solution - Prominent placement */}
+                              {question.gitCommitUrl && (
+                                <a
+                                  href={question.gitCommitUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-md transition-all duration-200 text-sm text-white font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                                  title="View solution on GitHub"
+                                >
+                                  <Github size={16} />
+                                  <span>View Solution</span>
+                                </a>
+                              )}
+                              
                               {!editingNotes && (
                                 <>
                                   <button
@@ -491,35 +506,24 @@ export default function Roadmap() {
                                     <StickyNote size={16} />
                                     <span>{question.notes ? 'Edit Notes' : 'Add Notes'}</span>
                                   </button>
+                                  
+                                  {/* Delete submission button */}
+                                  {question.gitCommitUrl && (
+                                    <button
+                                      onClick={() => handleDeleteSubmission(question.id)}
+                                      className="flex items-center gap-1.5 px-2 py-1.5 bg-red-900/30 hover:bg-red-900/50 rounded text-red-300 hover:text-red-200 transition-colors text-sm border border-red-800/50"
+                                      title="Delete submission"
+                                    >
+                                      <X size={14} />
+                                      <span>Delete</span>
+                                    </button>
+                                  )}
                                 </>
-                              )}
-                              
-                              {/* GitHub Link Indicator */}
-                              {question.gitCommitUrl && (
-                                <div className="ml-auto flex items-center gap-2">
-                                  <a
-                                    href={question.gitCommitUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
-                                    title="View on GitHub"
-                                  >
-                                    <ExternalLink size={14} />
-                                    <span>View Solution</span>
-                                  </a>
-                                  <button
-                                    onClick={() => handleDeleteSubmission(question.id)}
-                                    className="text-xs text-red-400 hover:text-red-300 transition-colors p-1 hover:bg-red-900/20 rounded"
-                                    title="Delete submission"
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                </div>
                               )}
                               
                               {/* Submission Date */}
                               {question.submittedAt && (
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 ml-auto">
                                   Submitted: {new Date(question.submittedAt).toLocaleDateString()}
                                 </span>
                               )}
