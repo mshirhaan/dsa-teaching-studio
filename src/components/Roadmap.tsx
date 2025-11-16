@@ -452,13 +452,13 @@ export default function Roadmap() {
                             </div>
 
                             {/* Action Icons Row - Below Title */}
-                            <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
                               {question.leetcodeUrl && (
                                 <a
                                   href={question.leetcodeUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm text-gray-300 hover:text-accent"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md transition-all duration-200 text-sm text-gray-300 hover:text-accent"
                                   title="Open in LeetCode"
                                 >
                                   <ExternalLink size={16} />
@@ -466,30 +466,33 @@ export default function Roadmap() {
                                 </a>
                               )}
                               
-                              {/* View Solution - Prominent placement */}
+                              {/* View Solution - Primary action, most prominent */}
                               {question.gitCommitUrl && (
-                                <a
-                                  href={question.gitCommitUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-md transition-all duration-200 text-sm text-white font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                                  title="View solution on GitHub"
-                                >
-                                  <Github size={16} />
-                                  <span>View Solution</span>
-                                </a>
+                                <>
+                                  <a
+                                    href={question.gitCommitUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 rounded-md transition-all duration-200 text-sm text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 border border-green-400/30"
+                                    title="View solution on GitHub"
+                                  >
+                                    <Github size={17} />
+                                    <span>View Solution</span>
+                                  </a>
+                                  <div className="h-6 w-px bg-gray-700" />
+                                </>
                               )}
                               
                               {!editingNotes && (
-                                <>
+                                <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => {
                                       setCurrentQuestionId(question.id);
                                       setShowSubmissionModal(true);
                                     }}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors text-sm ${
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
                                       question.gitCommitUrl
-                                        ? 'bg-green-700 hover:bg-green-600 text-white'
+                                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white border border-gray-600'
                                         : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-accent'
                                     } ${!github.token ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     title={!github.token ? 'Configure GitHub settings first to enable submission' : (question.gitCommitUrl ? 'Update solution on GitHub' : 'Submit solution to GitHub')}
@@ -500,25 +503,28 @@ export default function Roadmap() {
                                   </button>
                                   <button
                                     onClick={() => handleNotesClick(question.id, question.notes)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-accent transition-colors text-sm"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-gray-300 hover:text-accent transition-all duration-200 text-sm border border-gray-600"
                                     title={question.notes ? 'Edit notes' : 'Add notes'}
                                   >
                                     <StickyNote size={16} />
                                     <span>{question.notes ? 'Edit Notes' : 'Add Notes'}</span>
                                   </button>
                                   
-                                  {/* Delete submission button */}
+                                  {/* Delete submission button - visually separated */}
                                   {question.gitCommitUrl && (
-                                    <button
-                                      onClick={() => handleDeleteSubmission(question.id)}
-                                      className="flex items-center gap-1.5 px-2 py-1.5 bg-red-900/30 hover:bg-red-900/50 rounded text-red-300 hover:text-red-200 transition-colors text-sm border border-red-800/50"
-                                      title="Delete submission"
-                                    >
-                                      <X size={14} />
-                                      <span>Delete</span>
-                                    </button>
+                                    <>
+                                      <div className="h-6 w-px bg-gray-700" />
+                                      <button
+                                        onClick={() => handleDeleteSubmission(question.id)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 rounded-md text-red-300 hover:text-red-100 transition-all duration-200 text-sm border border-red-800/50 hover:border-red-700/70"
+                                        title="Delete submission"
+                                      >
+                                        <X size={16} />
+                                        <span>Delete</span>
+                                      </button>
+                                    </>
                                   )}
-                                </>
+                                </div>
                               )}
                               
                               {/* Submission Date */}
