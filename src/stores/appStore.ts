@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import LZString from 'lz-string';
 import { initialRoadmapQuestions } from '@/data/roadmapQuestions';
 
 export type ViewMode = 'split' | 'code-only' | 'draw-only' | 'roadmap';
@@ -531,6 +532,25 @@ export const useAppStore = create<AppStore>()(
 }),
     {
       name: 'workpad-storage',
+      storage: createJSONStorage(() => ({
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          try {
+            const decompressed = LZString.decompressFromUTF16(str);
+            // If decompressed is null/empty, it might be uncompressed data (legacy)
+            return JSON.parse(decompressed || str);
+          } catch {
+            // Fallback for uncompressed data
+            return JSON.parse(str);
+          }
+        },
+        setItem: (name, value) => {
+          const compressed = LZString.compressToUTF16(JSON.stringify(value));
+          localStorage.setItem(name, compressed);
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      })),
       partialize: (state) => ({
         viewMode: state.viewMode,
         sessionMode: state.sessionMode,
