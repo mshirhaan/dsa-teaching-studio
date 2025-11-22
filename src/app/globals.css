@@ -18,12 +18,18 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
+  background: linear-gradient(to bottom,
       transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: rgba(24, 24, 27, 0.7);
+  /* Zinc 900 with opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Custom scrollbar */
@@ -55,7 +61,7 @@ body {
   display: none !important;
 }
 
-.laser-mode-active .monaco-editor .cursors-layer > .cursor {
+.laser-mode-active .monaco-editor .cursors-layer>.cursor {
   display: none !important;
 }
 
@@ -77,6 +83,7 @@ body {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -86,4 +93,3 @@ body {
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
-
