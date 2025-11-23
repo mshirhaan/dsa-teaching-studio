@@ -139,6 +139,7 @@ export default function CodeEditor() {
   const [newFileName, setNewFileName] = useState('');
   const [isConsoleResizing, setIsConsoleResizing] = useState(false);
   const [laserPosition, setLaserPosition] = useState({ x: 0, y: 0 });
+  const [cursorPosition, setCursorPosition] = useState({ lineNumber: 1, column: 1 });
 
   // Refs for execution tracking (no closure issues)
   const executionRef = useRef({
@@ -542,8 +543,27 @@ export default function CodeEditor() {
               monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus,
               handleZoomOut
             );
+
+            editor.onDidChangeCursorPosition((e) => {
+              setCursorPosition({
+                lineNumber: e.position.lineNumber,
+                column: e.position.column,
+              });
+            });
           }}
         />
+
+        {/* Status Bar */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gray-800 text-gray-400 text-xs px-4 py-1 flex items-center justify-between border-t border-gray-700 z-10">
+          <div className="flex items-center gap-4">
+            <span>Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}</span>
+            <span>{LANGUAGES.find(l => l.value === codeEditor.language)?.label || codeEditor.language}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span>UTF-8</span>
+            <span>{codeEditor.files.find(f => f.id === codeEditor.currentFileId)?.name || 'Untitled'}</span>
+          </div>
+        </div>
 
         {/* Laser pointer indicator */}
         {laserMode && (
