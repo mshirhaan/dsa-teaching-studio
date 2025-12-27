@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { initialRoadmapQuestions } from '@/data/roadmapQuestions';
+import { autoBackupRoadmap } from '@/lib/firebase';
 
 export type ViewMode = 'split' | 'code-only' | 'draw-only' | 'roadmap';
 export type SessionMode = 'teaching' | 'qna' | 'break' | 'challenge';
@@ -472,32 +473,44 @@ export const useAppStore = create<AppStore>()(
         : q
     );
     const solvedCount = questions.filter(q => q.solved).length;
-    return { roadmap: { ...state.roadmap, questions, solvedCount } };
+    const newRoadmap = { ...state.roadmap, questions, solvedCount };
+    // Trigger auto-backup
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
   }),
-  updateQuestionNotes: (questionId, notes) => set((state) => ({
-    roadmap: {
+  updateQuestionNotes: (questionId, notes) => set((state) => {
+    const newRoadmap = {
       ...state.roadmap,
       questions: state.roadmap.questions.map(q =>
         q.id === questionId ? { ...q, notes } : q
       ),
-    },
-  })),
-  updateQuestionGitInfo: (questionId, gitCommitUrl, submittedAt, gitFilePath) => set((state) => ({
-    roadmap: {
+    };
+    // Trigger auto-backup
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
+  }),
+  updateQuestionGitInfo: (questionId, gitCommitUrl, submittedAt, gitFilePath) => set((state) => {
+    const newRoadmap = {
       ...state.roadmap,
       questions: state.roadmap.questions.map(q =>
         q.id === questionId ? { ...q, gitCommitUrl, submittedAt, gitFilePath } : q
       ),
-    },
-  })),
-  deleteQuestionGitInfo: (questionId) => set((state) => ({
-    roadmap: {
+    };
+    // Trigger auto-backup
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
+  }),
+  deleteQuestionGitInfo: (questionId) => set((state) => {
+    const newRoadmap = {
       ...state.roadmap,
       questions: state.roadmap.questions.map(q =>
         q.id === questionId ? { ...q, gitCommitUrl: undefined, submittedAt: undefined, gitFilePath: undefined } : q
       ),
-    },
-  })),
+    };
+    // Trigger auto-backup
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
+  }),
   
   github: {
     token: null,

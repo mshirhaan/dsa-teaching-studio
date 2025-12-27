@@ -112,3 +112,28 @@ export const restoreWorkspaceData = async (userId: string): Promise<{ codeEditor
   }
 };
 
+// Auto-backup utility with debouncing
+let backupTimeout: ReturnType<typeof setTimeout> | null = null;
+const BACKUP_DEBOUNCE_MS = 30000; // Wait 30 seconds after last change before backing up
+
+export const autoBackupRoadmap = (roadmapData: any) => {
+  // Clear existing timeout
+  if (backupTimeout) {
+    clearTimeout(backupTimeout);
+  }
+
+  // Set new timeout for debounced backup
+  backupTimeout = setTimeout(async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await backupRoadmapData(currentUser.uid, roadmapData);
+        console.log('Roadmap auto-backed up to cloud');
+      }
+    } catch (error: any) {
+      // Silently handle errors - don't interrupt user experience
+      console.error('Auto-backup failed:', error);
+    }
+  }, BACKUP_DEBOUNCE_MS);
+};
+
