@@ -5,36 +5,47 @@ import { Clock, Play, Pause, RotateCcw } from 'lucide-react';
 import { useState, useEffect, memo } from 'react';
 
 const TimerControl = memo(() => {
-  const {
-    timerMinutes,
-    timerSeconds,
-    timerSetMinutes,
-    isTimerRunning,
-    setTimerMinutes,
-    setTimerSeconds,
-    setTimerSetMinutes,
-    setIsTimerRunning,
-    resetTimer,
-  } = useAppStore();
+  const { timerSetMinutes, setTimerSetMinutes } = useAppStore();
 
+  const [minutes, setMinutes] = useState(5);
+  const [seconds, setSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false);
   const [showTimerControls, setShowTimerControls] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
-  const [isTimeUp, setIsTimeUp] = useState(false);
+
+  // Sync local minutes when preset duration changes (e.g. initial load or user selection)
+  useEffect(() => {
+    setMinutes(timerSetMinutes);
+    setSeconds(0);
+    setIsRunning(false);
+    setIsTimeUp(false);
+  }, [timerSetMinutes]);
 
   // Timer countdown effect
   useEffect(() => {
-    if (!isTimerRunning) return;
+    if (!isRunning) return;
     setIsTimeUp(false);
 
+    // Calculate initial remaining seconds when timer starts/resumes
+    const initialSeconds = minutes * 60 + seconds;
+    if (initialSeconds <= 0) {
+      setIsRunning(false);
+      setIsTimeUp(true);
+      return;
+    }
+
+    const targetTime = Date.now() + initialSeconds * 1000;
+
     const interval = setInterval(() => {
-      if (timerSeconds > 0) {
-        setTimerSeconds(timerSeconds - 1);
-      } else if (timerMinutes > 0) {
-        setTimerMinutes(timerMinutes - 1);
-        setTimerSeconds(59);
-      } else {
-        // Timer reached 00:00
-        setIsTimerRunning(false);
+      const now = Date.now();
+      const difference = targetTime - now;
+
+      if (difference <= 0) {
+        clearInterval(interval);
+        setMinutes(0);
+        setSeconds(0);
+        setIsRunning(false);
         setIsTimeUp(true);
         
         // Play alarm sound using Web Audio API
@@ -53,16 +64,21 @@ const TimerControl = memo(() => {
         
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 1);
+      } else {
+        const remainingSecs = Math.round(difference / 1000);
+        setMinutes(Math.floor(remainingSecs / 60));
+        setSeconds(remainingSecs % 60);
       }
-    }, 1000);
+    }, 200); // Check every 200ms to ensure smooth updates and avoid drift
 
     return () => clearInterval(interval);
-  }, [isTimerRunning, timerMinutes, timerSeconds, setTimerMinutes, setTimerSeconds, setIsTimerRunning]);
+    // We intentionally only depend on `isRunning` to avoid recreating the interval on every single tick,
+    // preventing drift due to React scheduling/rendering delays.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning]);
 
-  const handleSetTimer = (minutes: number) => {
-    setTimerSetMinutes(minutes);
-    setCustomMinutes('');
-    setIsTimeUp(false);
+  const handleSetTimer = (mins: number) => {
+    setTimerSetMinutes(mins);
   };
 
   const handleCustomTimer = () => {
@@ -70,7 +86,6 @@ const TimerControl = memo(() => {
     if (!isNaN(mins) && mins > 0 && mins <= 999) {
       setTimerSetMinutes(mins);
       setCustomMinutes('');
-      setIsTimeUp(false);
     }
   };
 
@@ -79,13 +94,15 @@ const TimerControl = memo(() => {
   };
 
   const handleResetTimer = () => {
-    resetTimer();
+    setMinutes(timerSetMinutes);
+    setSeconds(0);
+    setIsRunning(false);
     setIsTimeUp(false);
   };
 
   const handleToggleTimer = () => {
-    setIsTimerRunning(!isTimerRunning);
-    if (!isTimerRunning) {
+    setIsRunning(!isRunning);
+    if (!isRunning) {
       setShowTimerControls(false);
     }
   };
@@ -100,7 +117,13 @@ const TimerControl = memo(() => {
     >
       {!showTimerControls ? (
         <button
-          onClick={() => setShowTimerControls(true)}
+          onClick={() => {
+            if (isTimeUp) {
+              handleResetTimer();
+            } else {
+              setShowTimerControls(true);
+            }
+          }}
           className="
             flex items-center gap-2 
             px-2 py-1 rounded-md
@@ -108,37 +131,43 @@ const TimerControl = memo(() => {
             transition-all duration-300
             transform hover:scale-105
           "
-          title="Click to show timer settings"
-          aria-label="Open timer settings"
+          title={isTimeUp ? "Click to reset timer" : "Click to show timer settings"}
+          aria-label={isTimeUp ? "Reset timer" : "Open timer settings"}
         >
-          <Clock size={18} className={isTimeUp ? 'animate-spin' : ''} />
+          <Clock size={18} className={isTimeUp ? 'animate-bounce text-red-200' : ''} />
           {isTimeUp && (
             <span className="font-mono text-lg font-semibold min-w-[60px] text-red-200">
-              ⏰ TIME UP!
+              ⏰ TIME UP! (Reset)
             </span>
           )}
-          {isTimerRunning && !isTimeUp && (
+          {isRunning && !isTimeUp && (
             <span className="font-mono text-lg font-semibold min-w-[60px] text-white">
-              {formatTime(timerMinutes, timerSeconds)}
+              {formatTime(minutes, seconds)}
             </span>
           )}
         </button>
       ) : (
         <>
           <button
-            onClick={() => setShowTimerControls(false)}
+            onClick={() => {
+              if (isTimeUp) {
+                handleResetTimer();
+              } else {
+                setShowTimerControls(false);
+              }
+            }}
             className="
               flex items-center gap-2 
               px-2 py-1 rounded-md
               hover:bg-gray-600 
               transition-all duration-300
             "
-            title="Click to hide timer settings"
-            aria-label="Close timer settings"
+            title={isTimeUp ? "Click to reset timer" : "Click to hide timer settings"}
+            aria-label={isTimeUp ? "Reset timer" : "Close timer settings"}
           >
-            <Clock size={18} className={isTimeUp ? 'animate-spin' : ''} />
+            <Clock size={18} className={isTimeUp ? 'animate-bounce text-red-200' : ''} />
             <span className={`font-mono text-sm font-semibold min-w-[50px] ${isTimeUp ? 'text-red-200' : 'text-white'}`}>
-              {isTimeUp ? '⏰ TIME UP!' : formatTime(timerMinutes, timerSeconds)}
+              {isTimeUp ? '⏰ TIME UP! (Reset)' : formatTime(minutes, seconds)}
             </span>
           </button>
           
@@ -215,10 +244,10 @@ const TimerControl = memo(() => {
               transition-all duration-200
               transform hover:scale-110
             "
-            title={isTimerRunning ? 'Pause timer' : 'Start timer'}
-            aria-label={isTimerRunning ? 'Pause timer' : 'Start timer'}
+            title={isRunning ? 'Pause timer' : 'Start timer'}
+            aria-label={isRunning ? 'Pause timer' : 'Start timer'}
           >
-            {isTimerRunning ? <Pause size={16} /> : <Play size={16} />}
+            {isRunning ? <Pause size={16} /> : <Play size={16} />}
           </button>
           <button
             onClick={handleResetTimer}
@@ -242,4 +271,3 @@ const TimerControl = memo(() => {
 TimerControl.displayName = 'TimerControl';
 
 export default TimerControl;
-

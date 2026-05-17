@@ -107,15 +107,8 @@ interface AppStore {
   sessionMode: SessionMode;
   setSessionMode: (mode: SessionMode) => void;
   
-  timerMinutes: number;
-  timerSeconds: number;
   timerSetMinutes: number;
-  isTimerRunning: boolean;
-  setTimerMinutes: (minutes: number) => void;
-  setTimerSeconds: (seconds: number) => void;
   setTimerSetMinutes: (minutes: number) => void;
-  setIsTimerRunning: (running: boolean) => void;
-  resetTimer: () => void;
   
   currentSession: Session | null;
   createSession: () => void;
@@ -193,19 +186,8 @@ export const useAppStore = create<AppStore>()(
   sessionMode: 'teaching',
   setSessionMode: (mode) => set({ sessionMode: mode }),
   
-  timerMinutes: 5,
-  timerSeconds: 0,
   timerSetMinutes: 5,
-  isTimerRunning: false,
-  setTimerMinutes: (minutes) => set({ timerMinutes: minutes }),
-  setTimerSeconds: (seconds) => set({ timerSeconds: seconds }),
-  setTimerSetMinutes: (minutes) => set({ timerSetMinutes: minutes, timerMinutes: minutes, timerSeconds: 0 }),
-  setIsTimerRunning: (running) => set({ isTimerRunning: running }),
-  resetTimer: () => set((state) => ({ 
-    timerMinutes: state.timerSetMinutes, 
-    timerSeconds: 0, 
-    isTimerRunning: false 
-  })),
+  setTimerSetMinutes: (minutes) => set({ timerSetMinutes: minutes }),
   
   currentSession: null,
   createSession: () => {
