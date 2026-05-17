@@ -2,13 +2,14 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppStore } from '@/stores/appStore';
-import { CheckSquare, Square, Search, ExternalLink, StickyNote, X, ChevronDown, ChevronRight, Github, Upload, AlertCircle } from 'lucide-react';
+import { CheckSquare, Square, Search, ExternalLink, StickyNote, X, ChevronDown, ChevronRight, Github, Upload, AlertCircle, Plus, Pencil, Trash2, RotateCcw } from 'lucide-react';
 import SubmissionModal from './SubmissionModal';
+import QuestionModal from './QuestionModal';
 import { generateAndUploadReadme, uploadFile } from '@/utils/githubApi';
 import Toast from './Toast';
 
 export default function Roadmap() {
-  const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, deleteQuestionGitInfo, github } = useAppStore();
+  const { roadmap, toggleQuestionSolved, updateQuestionNotes, updateQuestionGitInfo, deleteQuestionGitInfo, deleteRoadmapQuestion, resetRoadmapToDefault, github } = useAppStore();
   const [searchTerm, setSearchTerm] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('roadmap-filter-search') || '';
@@ -49,6 +50,9 @@ export default function Roadmap() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastScrollSaveRef = useRef<number>(0);
+  
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   // Persist filters to localStorage
   useEffect(() => {
@@ -277,6 +281,30 @@ export default function Roadmap() {
     }
   };
 
+  const handleEditQuestion = (questionId: string) => {
+    setEditingQuestionId(questionId);
+    setShowQuestionModal(true);
+  };
+
+  const handleAddQuestion = () => {
+    setEditingQuestionId(null);
+    setShowQuestionModal(true);
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    if (confirm('Are you sure you want to delete this question from your roadmap?')) {
+      deleteRoadmapQuestion(questionId);
+      setToast({ message: 'Question deleted successfully', type: 'success' });
+    }
+  };
+
+  const handleResetRoadmap = () => {
+    if (confirm('WARNING: Are you sure you want to reset the roadmap? This will delete all custom questions and restore the defaults. Your solutions and progress will be preserved for questions that still exist.')) {
+      resetRoadmapToDefault();
+      setToast({ message: 'Roadmap reset to defaults', type: 'success' });
+    }
+  };
+
   const progress = roadmap.questions.length > 0 
     ? Math.round((roadmap.solvedCount / roadmap.questions.length) * 100)
     : 0;
@@ -292,9 +320,28 @@ export default function Roadmap() {
               Track your LeetCode problem-solving journey
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-accent">{roadmap.solvedCount}/{roadmap.questions.length}</div>
-            <div className="text-sm text-gray-400">Problems Solved</div>
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
+              <button
+                onClick={handleResetRoadmap}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-gray-300 hover:text-white transition-all text-sm border border-gray-600"
+                title="Reset roadmap to default questions"
+              >
+                <RotateCcw size={16} />
+                <span>Reset</span>
+              </button>
+              <button
+                onClick={handleAddQuestion}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-blue-700 rounded-md text-white transition-all text-sm shadow"
+              >
+                <Plus size={16} />
+                <span>Add Question</span>
+              </button>
+            </div>
+            <div className="text-right border-l border-gray-700 pl-4">
+              <div className="text-3xl font-bold text-accent">{roadmap.solvedCount}/{roadmap.questions.length}</div>
+              <div className="text-sm text-gray-400">Problems Solved</div>
+            </div>
           </div>
         </div>
 
@@ -452,12 +499,28 @@ export default function Roadmap() {
                                 </span>
                               </div>
                               
-                              {/* Solved Date - Top Right */}
-                              {question.solved && question.solvedAt && (
-                                <span className="text-xs text-gray-500 whitespace-nowrap">
-                                  Solved {new Date(question.solvedAt).toLocaleDateString()}
-                                </span>
-                              )}
+                              {/* Actions and Solved Date - Top Right */}
+                              <div className="flex items-center gap-2">
+                                {question.solved && question.solvedAt && (
+                                  <span className="text-xs text-gray-500 whitespace-nowrap mr-2">
+                                    Solved {new Date(question.solvedAt).toLocaleDateString()}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => handleEditQuestion(question.id)}
+                                  className="p-1 text-gray-500 hover:text-accent transition-colors"
+                                  title="Edit question"
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteQuestion(question.id)}
+                                  className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                                  title="Delete question"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </div>
 
                           {/* Action Buttons - Optimized UX Layout */}
@@ -618,6 +681,12 @@ export default function Roadmap() {
             }
           }
         }}
+      />
+
+      <QuestionModal
+        isOpen={showQuestionModal}
+        onClose={() => setShowQuestionModal(false)}
+        questionId={editingQuestionId}
       />
 
       {/* Toast Notification */}

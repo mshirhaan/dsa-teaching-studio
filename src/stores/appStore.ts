@@ -134,6 +134,10 @@ interface AppStore {
   updateQuestionGitInfo: (questionId: string, gitCommitUrl: string, submittedAt: number, gitFilePath: string) => void;
   deleteQuestionGitInfo: (questionId: string) => void;
   syncRoadmapFromGitHub: (parsedQuestions: Partial<RoadmapQuestion>[]) => void;
+  addRoadmapQuestion: (question: Omit<RoadmapQuestion, 'id' | 'solved'>) => void;
+  updateRoadmapQuestion: (questionId: string, updates: Partial<RoadmapQuestion>) => void;
+  deleteRoadmapQuestion: (questionId: string) => void;
+  resetRoadmapToDefault: () => void;
 
   
   github: GitHubConfig;
@@ -538,6 +542,48 @@ export const useAppStore = create<AppStore>()(
       return { roadmap: newRoadmap };
     }
     return state;
+  }),
+  addRoadmapQuestion: (question) => set((state) => {
+    const newQuestion: RoadmapQuestion = {
+      ...question,
+      id: Date.now().toString(),
+      solved: false,
+    };
+    const newRoadmap = {
+      ...state.roadmap,
+      questions: [...state.roadmap.questions, newQuestion],
+    };
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
+  }),
+  updateRoadmapQuestion: (questionId, updates) => set((state) => {
+    const newRoadmap = {
+      ...state.roadmap,
+      questions: state.roadmap.questions.map(q =>
+        q.id === questionId ? { ...q, ...updates } : q
+      ),
+    };
+    newRoadmap.solvedCount = newRoadmap.questions.filter(q => q.solved).length;
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
+  }),
+  deleteRoadmapQuestion: (questionId) => set((state) => {
+    const newRoadmap = {
+      ...state.roadmap,
+      questions: state.roadmap.questions.filter(q => q.id !== questionId),
+    };
+    newRoadmap.solvedCount = newRoadmap.questions.filter(q => q.solved).length;
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
+  }),
+  resetRoadmapToDefault: () => set((state) => {
+    const newRoadmap = {
+      ...state.roadmap,
+      questions: initialRoadmapQuestions,
+      solvedCount: initialRoadmapQuestions.filter(q => q.solved).length,
+    };
+    autoBackupRoadmap(newRoadmap);
+    return { roadmap: newRoadmap };
   }),
   
 
