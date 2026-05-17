@@ -13,10 +13,10 @@ import { Play, ZoomIn, ZoomOut, Plus, X, RotateCcw, Flashlight } from 'lucide-re
 // ============================================================================
 
 const LANGUAGES = [
-  { value: 'javascript', label: 'JavaScript', extensions: ['.js', '.jsx', '.mjs'], pistonLang: 'javascript' },
-  { value: 'python', label: 'Python', extensions: ['.py', '.pyw', '.pyi'], pistonLang: 'python' },
-  { value: 'cpp', label: 'C++', extensions: ['.cpp', '.cxx', '.cc', '.c++'], pistonLang: 'cpp' },
-  { value: 'java', label: 'Java', extensions: ['.java'], pistonLang: 'java' },
+  { value: 'javascript', label: 'JavaScript', extensions: ['.js', '.jsx', '.mjs'], judge0Id: 93 }, // Node.js 18.15.0
+  { value: 'python', label: 'Python', extensions: ['.py', '.pyw', '.pyi'], judge0Id: 100 },       // Python 3.12.5
+  { value: 'cpp', label: 'C++', extensions: ['.cpp', '.cxx', '.cc', '.c++'], judge0Id: 105 },       // C++ (GCC 14.1.0)
+  { value: 'java', label: 'Java', extensions: ['.java'], judge0Id: 91 },                           // Java (JDK 17.0.6)
 ];
 
 const THEMES = [
@@ -47,9 +47,9 @@ function getLanguageFromExtension(filename: string): string {
   return langConfig ? langConfig.value : 'javascript';
 }
 
-function getPistonLanguage(lang: string): string {
+function getJudge0LanguageId(lang: string): number {
   const langConfig = LANGUAGES.find(l => l.value === lang);
-  return langConfig?.pistonLang || lang;
+  return langConfig?.judge0Id || 93; // Default to JS
 }
 
 // ============================================================================
@@ -57,52 +57,46 @@ function getPistonLanguage(lang: string): string {
 // ============================================================================
 
 /**
- * Execute code via Piston API
+ * Execute code via Judge0 CE API
  * Pure function - no state dependencies
  */
-async function executePistonAPI(
+async function executeJudge0API(
   code: string,
-  language: string,
-  filename: string
+  language: string
 ): Promise<string> {
   try {
-    const pistonLang = getPistonLanguage(language);
+    const languageId = getJudge0LanguageId(language);
 
-    const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+    const response = await fetch('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        language: pistonLang,
-        version: '*',
-        files: [{ name: filename, content: code }],
-        stdin: '',
-        args: [],
+        source_code: code,
+        language_id: languageId,
       }),
     });
 
     const data = await response.json();
 
-    if (data.run) {
-      const output = [];
-
-      if (data.run.stderr) {
-        output.push('ERROR: ' + data.run.stderr);
-      }
-
-      if (data.run.stdout) {
-        output.push(data.run.stdout);
-      }
-
-      if (data.run.code !== 0 && !data.run.stderr) {
-        output.push(`Process exited with code ${data.run.code}`);
-      }
-
-      return output.join('\n') || 'No output';
+    if (data.stderr) {
+      return `ERROR:\n${data.stderr}`;
     }
 
-    return 'Failed to execute code';
+    if (data.compile_output) {
+      return `COMPILATION ERROR:\n${data.compile_output}`;
+    }
+
+    if (data.stdout !== null) {
+      return data.stdout || 'No output';
+    }
+
+    if (data.message) {
+      return `Error: ${data.message}`;
+    }
+
+    return 'Executed successfully with no output.';
   } catch (error: any) {
-    return `Error: ${error.message}`;
+    return `Network Error: Could not reach execution server.\nDetails: ${error.message}`;
   }
 }
 
@@ -179,7 +173,7 @@ export default function CodeEditor() {
     setIsRunning(true);
 
     try {
-      const output = await executePistonAPI(currentCode, currentLang, filename);
+      const output = await executeJudge0API(currentCode, currentLang);
       setConsoleOutput(output);
     } catch (error: any) {
       setConsoleOutput(`Error: ${error.message}`);
