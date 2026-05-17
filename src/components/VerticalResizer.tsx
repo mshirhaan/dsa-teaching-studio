@@ -3,7 +3,7 @@
 import { GripVertical } from 'lucide-react';
 
 interface VerticalResizerProps {
-  onMouseDown: () => void;
+  onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export default function VerticalResizer({ onMouseDown }: VerticalResizerProps) {
