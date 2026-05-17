@@ -20,6 +20,7 @@ export interface CodeEditorState {
   fontSize: number;
   currentFileId: string | null;
   files: CodeFile[];
+  selectedText: string;
 }
 
 export interface DrawingFile {
@@ -123,6 +124,7 @@ interface AppStore {
   
   codeEditor: CodeEditorState;
   updateCode: (code: string) => void;
+  setSelectedText: (text: string) => void;
   setLanguage: (language: string) => void;
   setTheme: (theme: string) => void;
   setFontSize: (size: number) => void;
@@ -225,6 +227,7 @@ export const useAppStore = create<AppStore>()(
         fontSize: 14,
         currentFileId: '1',
         files: [initialFile],
+        selectedText: '',
       },
       drawing: {
         currentFileId: '1',
@@ -317,6 +320,7 @@ export const useAppStore = create<AppStore>()(
     fontSize: 14,
     currentFileId: null,
     files: [],
+    selectedText: '',
   },
   updateCode: (code) => set((state) => {
     const updatedFiles = state.codeEditor.files.map(file => 
@@ -326,6 +330,7 @@ export const useAppStore = create<AppStore>()(
       codeEditor: { ...state.codeEditor, code, files: updatedFiles } 
     };
   }),
+  setSelectedText: (text) => set((state) => ({ codeEditor: { ...state.codeEditor, selectedText: text } })),
   setLanguage: (language) => set((state) => {
     const updatedFiles = state.codeEditor.files.map(file =>
       file.id === state.codeEditor.currentFileId ? { ...file, language } : file

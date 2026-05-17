@@ -81,7 +81,7 @@ export async function streamGeminiResponse(
   history: AiChatMessage[],
   newMessage: string,
   onChunk: (chunk: string) => void,
-  codeContext?: { code: string; language: string; consoleOutput: string }
+  codeContext?: { code: string; language: string; consoleOutput: string; selectedCode?: string }
 ): Promise<void> {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`;
 
@@ -89,7 +89,12 @@ export async function streamGeminiResponse(
   let systemInstruction = "You are a helpful and expert Data Structures and Algorithms teaching assistant. Your goal is to help the user understand the code, fix errors, and learn optimal approaches. Provide concise, accurate answers.";
   
   if (codeContext && codeContext.code.trim()) {
-    systemInstruction += `\n\nCURRENT CODE IN EDITOR (${codeContext.language}):\n\`\`\`${codeContext.language}\n${codeContext.code}\n\`\`\``;
+    if (codeContext.selectedCode && codeContext.selectedCode.trim()) {
+      systemInstruction += `\n\nTHE USER HAS HIGHLIGHTED A SPECIFIC BLOCK OF CODE TO DISCUSS:\n\`\`\`${codeContext.language}\n${codeContext.selectedCode}\n\`\`\``;
+      systemInstruction += `\n\n(Use the rest of the file below for broader context if needed):\n\`\`\`${codeContext.language}\n${codeContext.code}\n\`\`\``;
+    } else {
+      systemInstruction += `\n\nCURRENT CODE IN EDITOR (${codeContext.language}):\n\`\`\`${codeContext.language}\n${codeContext.code}\n\`\`\``;
+    }
     
     if (codeContext.consoleOutput && codeContext.consoleOutput.trim()) {
       systemInstruction += `\n\nCURRENT CONSOLE OUTPUT:\n\`\`\`\n${codeContext.consoleOutput}\n\`\`\``;

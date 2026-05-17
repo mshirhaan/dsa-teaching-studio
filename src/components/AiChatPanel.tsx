@@ -115,6 +115,7 @@ export default function AiChatPanel() {
         code: codeEditor.code,
         language: codeEditor.language,
         consoleOutput: consoleOutput,
+        selectedCode: codeEditor.selectedText,
       };
       
       await streamGeminiResponse(
@@ -204,6 +205,28 @@ export default function AiChatPanel() {
           message="What is the Time and Space Complexity of this code?" 
         />
       </div>
+      
+      {/* Selected Code Floating Action Bar */}
+      {codeEditor.selectedText && codeEditor.selectedText.trim() && (
+        <div className="bg-accent/10 border-b border-accent/25 px-4 py-2 flex items-center justify-between text-xs shrink-0 animate-fadeIn">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+            </span>
+            <span className="truncate text-gray-300 font-medium">
+              Selected <span className="font-mono bg-gray-900 border border-gray-700 px-1 py-0.5 rounded text-accent font-semibold">{codeEditor.selectedText.length} chars</span>
+            </span>
+          </div>
+          <button
+            onClick={() => handleSendMessage(`Can you explain what this specific selected block of code does?\n\n\`\`\`${codeEditor.language}\n${codeEditor.selectedText}\n\`\`\``)}
+            disabled={isTyping || streamingText !== null}
+            className="px-2.5 py-1 bg-accent text-white font-semibold rounded hover:bg-accent/90 disabled:opacity-50 transition-colors shadow-sm shrink-0"
+          >
+            Explain Selection
+          </button>
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

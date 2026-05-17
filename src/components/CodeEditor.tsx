@@ -600,6 +600,14 @@ export default function CodeEditor() {
                 column: e.position.column,
               });
             });
+
+            editor.onDidChangeCursorSelection((e) => {
+              const model = editor.getModel();
+              if (model) {
+                const selectedVal = model.getValueInRange(e.selection);
+                useAppStore.getState().setSelectedText(selectedVal);
+              }
+            });
           }}
         />
 
