@@ -210,7 +210,7 @@ export default function AiChatPanel() {
         {ai.chatHistory.length === 0 ? (
           <div className="text-center text-gray-500 mt-10">
             <Bot size={40} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Hi! I'm your AI coding assistant.</p>
+            <p className="text-sm">{"Hi! I'm your AI coding assistant."}</p>
             <p className="text-xs mt-2">I can see your code and console. Ask me anything or use the quick actions above!</p>
             {!ai.apiKey && (
               <button
