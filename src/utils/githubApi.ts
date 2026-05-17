@@ -248,3 +248,82 @@ export async function generateAndUploadReadme(
     return { success: false, error: error.message || 'Failed to generate README' };
   }
 }
+
+/**
+ * Fetch README.md from GitHub and parse the solutions table
+ */
+export async function fetchAndParseReadme(config: GitHubConfig): Promise<{ success: boolean; data?: Partial<RoadmapQuestion>[]; error?: string }> {
+  try {
+    const url = `https://api.github.com/repos/${config.repoOwner}/${config.repoName}/contents/README.md`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${config.token}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!response.ok) {
+      return { success: false, error: 'README.md not found or inaccessible.' };
+    }
+
+    const data = await response.json();
+    const content = decodeURIComponent(escape(atob(data.content)));
+
+    // Parse the markdown table
+    const lines = content.split('\n');
+    let tableStarted = false;
+    const parsedQuestions: Partial<RoadmapQuestion>[] = [];
+
+    for (const line of lines) {
+      if (line.trim().startsWith('| # | Problem |')) {
+        tableStarted = true;
+        continue;
+      }
+      if (tableStarted && line.trim().startsWith('|---')) {
+        continue; // skip separator
+      }
+      if (tableStarted && line.trim() === '') {
+        tableStarted = false; // end of table
+        continue;
+      }
+      if (tableStarted && line.trim().startsWith('|')) {
+        // Parse row
+        // Format: | 1 | Two Sum | Easy | [Link](...) | [Code](https://...) | Jan 1, 2026 | Notes |
+        const cols = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
+        if (cols.length >= 7) {
+          const number = parseInt(cols[0], 10);
+          
+          // Parse code URL: [Code](url)
+          const codeCol = cols[4];
+          const codeMatch = codeCol.match(/\[Code\]\((.*?)\)/);
+          const gitCommitUrl = codeMatch ? codeMatch[1] : undefined;
+          
+          // Parse date
+          const dateCol = cols[5];
+          let submittedAt: number | undefined = undefined;
+          if (dateCol !== '-') {
+            submittedAt = new Date(dateCol).getTime();
+          }
+
+          // Parse notes
+          const notesCol = cols[6];
+          const notes = notesCol !== '-' ? notesCol : undefined;
+
+          if (!isNaN(number) && gitCommitUrl) {
+            parsedQuestions.push({
+              number,
+              gitCommitUrl,
+              submittedAt,
+              notes,
+              solved: true,
+            });
+          }
+        }
+      }
+    }
+
+    return { success: true, data: parsedQuestions };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to fetch and parse README' };
+  }
+}

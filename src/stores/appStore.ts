@@ -133,6 +133,8 @@ interface AppStore {
   updateQuestionNotes: (questionId: string, notes: string) => void;
   updateQuestionGitInfo: (questionId: string, gitCommitUrl: string, submittedAt: number, gitFilePath: string) => void;
   deleteQuestionGitInfo: (questionId: string) => void;
+  syncRoadmapFromGitHub: (parsedQuestions: Partial<RoadmapQuestion>[]) => void;
+
   
   github: GitHubConfig;
   setGitHubConfig: (config: Partial<GitHubConfig>) => void;
@@ -511,7 +513,34 @@ export const useAppStore = create<AppStore>()(
     autoBackupRoadmap(newRoadmap);
     return { roadmap: newRoadmap };
   }),
+  syncRoadmapFromGitHub: (parsedQuestions) => set((state) => {
+    let updatedCount = 0;
+    const newQuestions = state.roadmap.questions.map(q => {
+      const parsed = parsedQuestions.find(pq => pq.number === q.number);
+      if (parsed) {
+        updatedCount++;
+        return {
+          ...q,
+          solved: true,
+          solvedAt: parsed.submittedAt || q.solvedAt || Date.now(),
+          gitCommitUrl: parsed.gitCommitUrl || q.gitCommitUrl,
+          submittedAt: parsed.submittedAt || q.submittedAt,
+          notes: parsed.notes || q.notes,
+        };
+      }
+      return q;
+    });
+    
+    if (updatedCount > 0) {
+      const solvedCount = newQuestions.filter(q => q.solved).length;
+      const newRoadmap = { ...state.roadmap, questions: newQuestions, solvedCount };
+      autoBackupRoadmap(newRoadmap);
+      return { roadmap: newRoadmap };
+    }
+    return state;
+  }),
   
+
   github: {
     token: null,
     repoOwner: null,

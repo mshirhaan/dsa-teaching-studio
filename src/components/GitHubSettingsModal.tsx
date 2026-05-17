@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useAppStore } from '@/stores/appStore';
-import { X, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { X, Check, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { fetchAndParseReadme } from '@/utils/githubApi';
 
 interface GitHubSettingsModalProps {
   isOpen: boolean;
@@ -10,14 +11,34 @@ interface GitHubSettingsModalProps {
 }
 
 export default function GitHubSettingsModal({ isOpen, onClose }: GitHubSettingsModalProps) {
-  const { github, setGitHubConfig } = useAppStore();
+  const { github, setGitHubConfig, syncRoadmapFromGitHub } = useAppStore();
   const [token, setToken] = useState(github.token || '');
   const [repoOwner, setRepoOwner] = useState(github.repoOwner || '');
   const [repoName, setRepoName] = useState(github.repoName || '');
   const [basePath, setBasePath] = useState(github.basePath || 'solutions');
   const [showToken, setShowToken] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setTestResult(null);
+
+    try {
+      const result = await fetchAndParseReadme({ token, repoOwner, repoName, basePath });
+      if (result.success && result.data) {
+        syncRoadmapFromGitHub(result.data);
+        setTestResult({ success: true, message: `Successfully synced ${result.data.length} solutions from GitHub.` });
+      } else {
+        setTestResult({ success: false, message: result.error || 'Failed to sync solutions.' });
+      }
+    } catch (error: any) {
+      setTestResult({ success: false, message: 'Network error during sync.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleTestConnection = async () => {
     setIsTesting(true);
@@ -157,32 +178,52 @@ export default function GitHubSettingsModal({ isOpen, onClose }: GitHubSettingsM
         </div>
 
         <div className="flex items-center justify-between p-6 border-t border-gray-700">
-          <button
-            onClick={handleTestConnection}
-            disabled={isTesting || !token || !repoOwner || !repoName}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isTesting ? (
-              <>
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                Testing...
-              </>
-            ) : (
-              'Test Connection'
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleTestConnection}
+              disabled={isTesting || isSyncing || !token || !repoOwner || !repoName}
+              className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+            >
+              {isTesting ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Testing...
+                </>
+              ) : (
+                'Test Connection'
+              )}
+            </button>
+            <button
+              onClick={handleSync}
+              disabled={isTesting || isSyncing || !token || !repoOwner || !repoName}
+              className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+              title="Sync solutions from GitHub README"
+            >
+              {isSyncing ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={18} />
+                  Sync
+                </>
+              )}
+            </button>
+          </div>
 
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
+              className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg text-white whitespace-nowrap"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!token || !repoOwner || !repoName}
-              className="px-4 py-2 bg-accent hover:bg-blue-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm bg-accent hover:bg-blue-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Save
             </button>
