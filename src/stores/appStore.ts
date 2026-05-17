@@ -83,8 +83,20 @@ export interface GitHubConfig {
   token: string | null;
   repoOwner: string | null;
   repoName: string | null;
-  basePath: string; // e.g., "solutions" or ""
+  basePath: string; // The folder in the repo to save to (default: '')
   initialized: boolean;
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+export interface AiState {
+  apiKey: string | null;
+  chatHistory: AiChatMessage[];
+  isChatOpen: boolean;
+  chatWidth: number;
 }
 
 interface AppStore {
@@ -142,6 +154,13 @@ interface AppStore {
   
   github: GitHubConfig;
   setGitHubConfig: (config: Partial<GitHubConfig>) => void;
+  
+  ai: AiState;
+  setAiApiKey: (key: string | null) => void;
+  addAiChatMessage: (message: AiChatMessage) => void;
+  clearAiChatHistory: () => void;
+  setAiChatOpen: (isOpen: boolean) => void;
+  setAiChatWidth: (width: number) => void;
   
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
@@ -588,14 +607,53 @@ export const useAppStore = create<AppStore>()(
   
 
   github: {
-    token: null,
-    repoOwner: null,
-    repoName: null,
-    basePath: 'solutions',
+    token: typeof window !== 'undefined' ? localStorage.getItem('dsa-github-token') : null,
+    repoOwner: typeof window !== 'undefined' ? localStorage.getItem('dsa-github-owner') : null,
+    repoName: typeof window !== 'undefined' ? localStorage.getItem('dsa-github-repo') : null,
+    basePath: typeof window !== 'undefined' ? localStorage.getItem('dsa-github-basepath') || '' : '',
     initialized: false,
   },
-  setGitHubConfig: (config) => set((state) => ({
-    github: { ...state.github, ...config, initialized: true }
+  setGitHubConfig: (config) => set((state) => {
+    const newConfig = { ...state.github, ...config, initialized: true };
+    if (typeof window !== 'undefined') {
+      if (newConfig.token) localStorage.setItem('dsa-github-token', newConfig.token);
+      else localStorage.removeItem('dsa-github-token');
+      
+      if (newConfig.repoOwner) localStorage.setItem('dsa-github-owner', newConfig.repoOwner);
+      else localStorage.removeItem('dsa-github-owner');
+      
+      if (newConfig.repoName) localStorage.setItem('dsa-github-repo', newConfig.repoName);
+      else localStorage.removeItem('dsa-github-repo');
+      
+      localStorage.setItem('dsa-github-basepath', newConfig.basePath);
+    }
+    return { github: newConfig };
+  }),
+
+  ai: {
+    apiKey: typeof window !== 'undefined' ? localStorage.getItem('dsa-gemini-api-key') : null,
+    chatHistory: [],
+    isChatOpen: false,
+    chatWidth: 320,
+  },
+  setAiApiKey: (key) => set((state) => {
+    if (typeof window !== 'undefined') {
+      if (key) localStorage.setItem('dsa-gemini-api-key', key);
+      else localStorage.removeItem('dsa-gemini-api-key');
+    }
+    return { ai: { ...state.ai, apiKey: key } };
+  }),
+  addAiChatMessage: (message) => set((state) => ({
+    ai: { ...state.ai, chatHistory: [...state.ai.chatHistory, message] }
+  })),
+  clearAiChatHistory: () => set((state) => ({
+    ai: { ...state.ai, chatHistory: [] }
+  })),
+  setAiChatOpen: (isOpen) => set((state) => ({
+    ai: { ...state.ai, isChatOpen: isOpen }
+  })),
+  setAiChatWidth: (width) => set((state) => ({
+    ai: { ...state.ai, chatWidth: width }
   })),
   
   isRunning: false,

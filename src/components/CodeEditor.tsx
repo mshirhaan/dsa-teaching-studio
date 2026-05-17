@@ -6,7 +6,9 @@ import Editor from '@monaco-editor/react';
 import Console from './Console';
 import { motion, AnimatePresence } from 'framer-motion';
 import HorizontalResizer from './HorizontalResizer';
-import { Play, ZoomIn, ZoomOut, Plus, X, RotateCcw, Flashlight } from 'lucide-react';
+import VerticalResizer from './VerticalResizer';
+import { Play, ZoomIn, ZoomOut, Plus, X, RotateCcw, Flashlight, Bot } from 'lucide-react';
+import AiChatPanel from './AiChatPanel';
 
 // ============================================================================
 // CONSTANTS & CONFIGS
@@ -126,12 +128,15 @@ export default function CodeEditor() {
     setLaserMode,
     consoleHeight,
     setConsoleHeight,
+    ai,
+    setAiChatOpen,
   } = useAppStore();
 
   // Local UI state (not in store)
   const [editingFileName, setEditingFileName] = useState<string | null>(null);
   const [newFileName, setNewFileName] = useState('');
   const [isConsoleResizing, setIsConsoleResizing] = useState(false);
+  const [isChatResizing, setIsChatResizing] = useState(false);
   const [laserPosition, setLaserPosition] = useState({ x: 0, y: 0 });
   const [cursorPosition, setCursorPosition] = useState({ lineNumber: 1, column: 1 });
 
@@ -337,6 +342,43 @@ export default function CodeEditor() {
     }
   }, [isConsoleResizing, handleConsoleResize, handleConsoleResizeEnd]);
 
+  // Chat resize handlers
+  const handleChatResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsChatResizing(true);
+    // Disable text selection during drag
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const handleChatResize = useCallback((e: MouseEvent) => {
+    if (!isChatResizing || !containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const minWidth = 250;
+    const maxWidth = rect.width * 0.7; // Max 70% of container width
+    
+    const newWidth = rect.right - e.clientX;
+    const clampedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+    
+    useAppStore.getState().setAiChatWidth(clampedWidth);
+  }, [isChatResizing]);
+
+  const handleChatResizeEnd = useCallback(() => {
+    setIsChatResizing(false);
+    document.body.style.userSelect = '';
+  }, []);
+
+  useEffect(() => {
+    if (isChatResizing) {
+      window.addEventListener('mousemove', handleChatResize);
+      window.addEventListener('mouseup', handleChatResizeEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleChatResize);
+        window.removeEventListener('mouseup', handleChatResizeEnd);
+      };
+    }
+  }, [isChatResizing, handleChatResize, handleChatResizeEnd]);
+
   // Laser pointer tracking
   useEffect(() => {
     if (!laserMode) return;
@@ -354,8 +396,10 @@ export default function CodeEditor() {
   // ============================================================================
 
   return (
-    <div className={`h-full flex flex-col bg-gray-900 ${laserMode ? 'laser-mode-active' : ''}`} ref={containerRef}>
-      {/* File Tabs & Toolbar */}
+    <div className={`h-full flex bg-gray-900 ${laserMode ? 'laser-mode-active' : ''}`} ref={containerRef}>
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* File Tabs & Toolbar */}
       {/* Glass Header / Toolbar */}
       <div className="h-12 flex items-center px-2 border-b border-white/5 glass z-10">
         {/* Left: File tabs */}
@@ -444,6 +488,18 @@ export default function CodeEditor() {
             aria-label="Toggle laser pointer mode"
           >
             <Flashlight size={18} />
+          </button>
+
+          <button
+            onClick={() => setAiChatOpen(!ai.isChatOpen)}
+            className={`p-2 rounded-lg flex items-center justify-center border-2 transition-all duration-300 transform hover:scale-105 ${ai.isChatOpen
+              ? 'bg-purple-900 border-purple-600 text-purple-200'
+              : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+              }`}
+            title="AI Assistant"
+            aria-label="Toggle AI Assistant"
+          >
+            <Bot size={18} />
           </button>
 
           <button
@@ -582,6 +638,15 @@ export default function CodeEditor() {
       <div style={{ height: `${consoleHeight}px` }} className="flex flex-col">
         <Console output={consoleOutput} onClear={() => setConsoleOutput('')} />
       </div>
+      </div>
+
+      {/* AI Chat Panel & Resizer */}
+      {ai.isChatOpen && (
+        <>
+          <VerticalResizer onMouseDown={handleChatResizeStart} />
+          <AiChatPanel />
+        </>
+      )}
     </div>
   );
 }
