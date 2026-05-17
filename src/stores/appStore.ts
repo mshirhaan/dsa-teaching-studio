@@ -697,6 +697,7 @@ export const useAppStore = create<AppStore>()(
         splitRatio: state.splitRatio,
         consoleHeight: state.consoleHeight,
         showToolbarButtons: state.showToolbarButtons,
+        ai: state.ai,
       }),
       onRehydrateStorage: () => (state) => {
         // Migrate legacy drawing format if present
