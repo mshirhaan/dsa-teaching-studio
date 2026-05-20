@@ -77,6 +77,26 @@ const MarkdownComponents = {
   blockquote: ({ children }: any) => <blockquote className="border-l-2 border-accent pl-3 italic my-2 text-gray-400 text-xs">{children}</blockquote>,
 };
 
+interface QuickActionButtonProps {
+  icon: any;
+  label: string;
+  message: string;
+  onClick: (message: string) => void;
+  disabled: boolean;
+}
+
+const QuickActionButton = ({ icon: Icon, label, message, onClick, disabled }: QuickActionButtonProps) => (
+  <button
+    onClick={() => onClick(message)}
+    disabled={disabled}
+    className="flex flex-col items-center justify-center p-2 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 transition-colors flex-1 disabled:opacity-50"
+    title={message}
+  >
+    <Icon size={16} className="text-accent mb-1" />
+    <span className="text-xs text-gray-300 whitespace-nowrap">{label}</span>
+  </button>
+);
+
 export default function AiChatPanel() {
   const { ai, setAiChatOpen, addAiChatMessage, clearAiChatHistory, codeEditor, consoleOutput } = useAppStore();
   const [inputValue, setInputValue] = useState('');
@@ -140,18 +160,6 @@ export default function AiChatPanel() {
     }
   };
 
-  const QuickActionButton = ({ icon: Icon, label, message }: { icon: any, label: string, message: string }) => (
-    <button
-      onClick={() => handleSendMessage(message)}
-      disabled={isTyping || !ai.apiKey}
-      className="flex flex-col items-center justify-center p-2 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 transition-colors flex-1 disabled:opacity-50"
-      title={message}
-    >
-      <Icon size={16} className="text-accent mb-1" />
-      <span className="text-xs text-gray-300 whitespace-nowrap">{label}</span>
-    </button>
-  );
-
   return (
     <div 
       style={{ width: `${ai.chatWidth}px` }}
@@ -193,16 +201,22 @@ export default function AiChatPanel() {
           icon={BookOpen} 
           label="Explain" 
           message="Can you explain this code line by line?" 
+          onClick={handleSendMessage}
+          disabled={isTyping || !ai.apiKey}
         />
         <QuickActionButton 
           icon={Bug} 
           label="Fix Error" 
           message="My code has an error. Can you find the bug and suggest a fix?" 
+          onClick={handleSendMessage}
+          disabled={isTyping || !ai.apiKey}
         />
         <QuickActionButton 
           icon={Zap} 
           label="Complexity" 
           message="What is the Time and Space Complexity of this code?" 
+          onClick={handleSendMessage}
+          disabled={isTyping || !ai.apiKey}
         />
       </div>
       
