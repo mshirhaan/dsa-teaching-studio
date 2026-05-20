@@ -6,6 +6,7 @@ import SessionModeButton from './SessionModeButton';
 import TimerControl from './TimerControl';
 import ViewModeSwitcher from './ViewModeSwitcher';
 import ActionButtons from './ActionButtons';
+import PostureReminder from './PostureReminder';
 
 const Toolbar = memo(() => {
   return (
@@ -18,6 +19,7 @@ const Toolbar = memo(() => {
 
       {/* Center section: Session mode, Timer, and View Mode */}
       <div className="flex items-center gap-3">
+        <PostureReminder />
         <SessionModeButton />
         <TimerControl />
         <ViewModeSwitcher />
