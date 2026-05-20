@@ -618,15 +618,23 @@ export const useAppStore = create<AppStore>()(
   }),
 
   ai: {
-    apiKey: typeof window !== 'undefined' ? localStorage.getItem('dsa-gemini-api-key') : null,
+    apiKey: typeof window !== 'undefined'
+      ? (
+          localStorage.getItem('dsa-openrouter-api-key') ||
+          localStorage.getItem('dsa-openai-api-key') ||
+          localStorage.getItem('dsa-gemini-api-key')
+        )
+      : null,
     chatHistory: [],
     isChatOpen: false,
     chatWidth: 320,
   },
   setAiApiKey: (key) => set((state) => {
     if (typeof window !== 'undefined') {
-      if (key) localStorage.setItem('dsa-gemini-api-key', key);
-      else localStorage.removeItem('dsa-gemini-api-key');
+      if (key) localStorage.setItem('dsa-openrouter-api-key', key);
+      else localStorage.removeItem('dsa-openrouter-api-key');
+      localStorage.removeItem('dsa-openai-api-key');
+      localStorage.removeItem('dsa-gemini-api-key');
     }
     return { ai: { ...state.ai, apiKey: key } };
   }),

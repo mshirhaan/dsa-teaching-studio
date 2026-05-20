@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '@/stores/appStore';
-import { streamGeminiResponse } from '@/utils/geminiApi';
+import { streamOpenRouterResponse } from '@/utils/openrouterApi';
 import { X, Send, Bot, User, Trash2, Settings, Zap, Bug, BookOpen, Copy, Check } from 'lucide-react';
 import AiSettingsModal from './AiSettingsModal';
 import ReactMarkdown from 'react-markdown';
@@ -118,7 +118,7 @@ export default function AiChatPanel() {
         selectedCode: codeEditor.selectedText,
       };
       
-      await streamGeminiResponse(
+      await streamOpenRouterResponse(
         ai.apiKey,
         ai.chatHistory,
         textToSend,

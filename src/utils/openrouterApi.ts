@@ -1,16 +1,31 @@
 import { AiChatMessage } from '@/stores/appStore';
 
+const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODEL = 'openrouter/free';
+
+const getOpenRouterHeaders = (apiKey: string) => {
+  const referer = typeof window !== 'undefined'
+    ? window.location.origin
+    : 'http://localhost:3000';
+
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+    'HTTP-Referer': referer,
+    'X-Title': 'WorkPad',
+  };
+};
+
 /**
- * Calls the Google Gemini REST API.
- * Uses the free tier endpoints.
+ * Calls the OpenRouter Chat Completions API.
  */
-export async function generateGeminiResponse(
+export async function generateOpenRouterResponse(
   apiKey: string,
   history: AiChatMessage[],
   newMessage: string,
   codeContext?: { code: string; language: string; consoleOutput: string }
 ): Promise<string> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const endpoint = OPENROUTER_ENDPOINT;
 
   // Build the system prompt
   let systemInstruction = "You are a helpful and expert Data Structures and Algorithms teaching assistant. Your goal is to help the user understand the code, fix errors, and learn optimal approaches. Provide concise, accurate answers.";
@@ -23,35 +38,26 @@ export async function generateGeminiResponse(
     }
   }
 
-  // Format the history for Gemini API
-  const contents = history.map(msg => ({
-    role: msg.role === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.text }]
-  }));
-
-  // Append the new message
-  contents.push({
-    role: 'user',
-    parts: [{ text: newMessage }]
-  });
+  const messages = [
+    { role: 'system', content: systemInstruction },
+    ...history.map((msg) => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.text,
+    })),
+    { role: 'user', content: newMessage },
+  ];
 
   const payload = {
-    system_instruction: {
-      parts: [{ text: systemInstruction }]
-    },
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 2048,
-    }
+    model: OPENROUTER_MODEL,
+    messages,
+    temperature: 0.5,
+    max_tokens: 1200,
   };
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: getOpenRouterHeaders(apiKey),
       body: JSON.stringify(payload)
     });
 
@@ -62,28 +68,27 @@ export async function generateGeminiResponse(
 
     const data = await response.json();
     
-    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-      return data.candidates[0].content.parts[0].text;
-    }
+    const text = data?.choices?.[0]?.message?.content;
+    if (typeof text === 'string' && text.trim()) return text;
     
     return "Sorry, I couldn't generate a response.";
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    throw new Error(`Failed to communicate with Gemini: ${error.message}`);
+    console.error("OpenRouter API Error:", error);
+    throw new Error(`Failed to communicate with OpenRouter: ${error.message}`);
   }
 }
 
 /**
- * Streams the response from Google Gemini REST API using Server-Sent Events (SSE).
+ * Streams the response from OpenRouter API using Server-Sent Events (SSE).
  */
-export async function streamGeminiResponse(
+export async function streamOpenRouterResponse(
   apiKey: string,
   history: AiChatMessage[],
   newMessage: string,
   onChunk: (chunk: string) => void,
   codeContext?: { code: string; language: string; consoleOutput: string; selectedCode?: string }
 ): Promise<void> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`;
+  const endpoint = OPENROUTER_ENDPOINT;
 
   // Build the system prompt
   let systemInstruction = "You are a helpful and expert Data Structures and Algorithms teaching assistant. Your goal is to help the user understand the code, fix errors, and learn optimal approaches. Provide concise, accurate answers.";
@@ -101,34 +106,26 @@ export async function streamGeminiResponse(
     }
   }
 
-  // Format the history for Gemini API
-  const contents = history.map(msg => ({
-    role: msg.role === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.text }]
-  }));
-
-  // Append the new message
-  contents.push({
-    role: 'user',
-    parts: [{ text: newMessage }]
-  });
+  const messages = [
+    { role: 'system', content: systemInstruction },
+    ...history.map((msg) => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.text,
+    })),
+    { role: 'user', content: newMessage },
+  ];
 
   const payload = {
-    system_instruction: {
-      parts: [{ text: systemInstruction }]
-    },
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 2048,
-    }
+    model: OPENROUTER_MODEL,
+    messages,
+    temperature: 0.5,
+    max_tokens: 1200,
+    stream: true,
   };
 
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: getOpenRouterHeaders(apiKey),
     body: JSON.stringify(payload)
   });
 
@@ -160,7 +157,7 @@ export async function streamGeminiResponse(
           if (jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
-            const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const textChunk = parsed?.choices?.[0]?.delta?.content || '';
             if (textChunk) {
               onChunk(textChunk);
             }
@@ -176,7 +173,7 @@ export async function streamGeminiResponse(
       const jsonStr = buffer.slice(6).trim();
       try {
         const parsed = JSON.parse(jsonStr);
-        const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const textChunk = parsed?.choices?.[0]?.delta?.content || '';
         if (textChunk) {
           onChunk(textChunk);
         }
@@ -185,7 +182,7 @@ export async function streamGeminiResponse(
       }
     }
   } catch (error: any) {
-    console.error("Gemini Streaming Error:", error);
+    console.error("OpenRouter Streaming Error:", error);
     throw new Error(`Streaming failed: ${error.message}`);
   } finally {
     reader.releaseLock();

@@ -54,29 +54,29 @@ export default function AiSettingsModal({ isOpen, onClose }: AiSettingsModalProp
         {/* Content */}
         <div className="p-6 space-y-4">
           <p className="text-sm text-gray-300">
-            Enter your Google Gemini API key to enable the AI coding assistant. Your key is stored locally in your browser and is never sent to our servers.
+            Enter your OpenRouter API key to enable the AI coding assistant. Your key is stored locally in your browser and is never sent to our servers.
           </p>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Gemini API Key
+              OpenRouter API Key
             </label>
             <input
               type="password"
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="AIzaSy..."
+              placeholder="sk-or-v1-..."
               className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-accent focus:outline-none"
             />
           </div>
 
           <a
-            href="https://aistudio.google.com/app/apikey"
+            href="https://openrouter.ai/keys"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-sm text-accent hover:text-blue-400 transition-colors mt-2"
           >
-            Get a free API key from Google AI Studio <ExternalLink size={14} />
+            Get your API key from OpenRouter <ExternalLink size={14} />
           </a>
           
           {isSaved && (
