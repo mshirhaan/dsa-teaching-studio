@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/appStore';
-import { X, Key, ExternalLink, Check, AlertCircle } from 'lucide-react';
+import { X, Key, ExternalLink, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface AiSettingsModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ export default function AiSettingsModal({ isOpen, onClose }: AiSettingsModalProp
   const { ai, setAiApiKey } = useAppStore();
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -61,15 +62,25 @@ export default function AiSettingsModal({ isOpen, onClose }: AiSettingsModalProp
             <label className="block text-sm font-medium text-gray-300 mb-2">
               OpenRouter API Key
             </label>
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="sk-or-v1-..."
-              className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-accent focus:outline-none"
-            />
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="sk-or-v1-..."
+                className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-accent focus:outline-none pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                title={showKey ? "Hide API key" : "Show API key"}
+              >
+                {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
-
+          
           <a
             href="https://openrouter.ai/keys"
             target="_blank"
