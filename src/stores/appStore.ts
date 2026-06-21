@@ -526,7 +526,7 @@ export const useAppStore = create<AppStore>()(
   syncRoadmapFromGitHub: (parsedQuestions) => set((state) => {
     let updatedCount = 0;
     const newQuestions = state.roadmap.questions.map(q => {
-      const parsed = parsedQuestions.find(pq => pq.number === q.number);
+      const parsed = parsedQuestions.find(pq => pq.number === q.number && pq.title === q.title);
       if (parsed) {
         updatedCount++;
         return {

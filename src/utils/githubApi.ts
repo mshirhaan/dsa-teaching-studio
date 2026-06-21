@@ -292,6 +292,7 @@ export async function fetchAndParseReadme(config: GitHubConfig): Promise<{ succe
         const cols = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
         if (cols.length >= 7) {
           const number = parseInt(cols[0], 10);
+          const title = cols[1];
           
           // Parse code URL: [Code](url)
           const codeCol = cols[4];
@@ -312,6 +313,7 @@ export async function fetchAndParseReadme(config: GitHubConfig): Promise<{ succe
           if (!isNaN(number) && gitCommitUrl) {
             parsedQuestions.push({
               number,
+              title,
               gitCommitUrl,
               submittedAt,
               notes,
